@@ -161,11 +161,11 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     const int bs = buffer.getNumSamples(); 
-
+    /*
     if (buffer.getMagnitude(0, bs) == false && out.getMagnitude(0,bs) == false) {
         return;
     }
-
+    */
 
     auto inputs = getBusBuffer(buffer, true, 0);
 
