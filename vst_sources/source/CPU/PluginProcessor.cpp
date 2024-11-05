@@ -94,7 +94,7 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     DBG(samplesPerBlock);
-    int totalSize = (((sampleRate * 3) / samplesPerBlock) + 1) * samplesPerBlock;
+    int totalSize = (((sampleRate * 2) / samplesPerBlock) + 1) * samplesPerBlock;
     gain->prepare();
     swapper->prepare(samplesPerBlock, totalSize);
     
@@ -103,7 +103,6 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     sliceBuf.clear();
     out.setSize(2, samplesPerBlock);
     out.clear();
-      
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -118,7 +117,7 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout
         layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
     {
         return false;
-}
+    }
 
     // Ensure that the main output bus is either mono or stereo
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
@@ -154,18 +153,20 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout
     return true; // All checks passed; layout is supported
 }
 
-void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
-    juce::MidiBuffer& midiMessages)
+void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
-    const int bs = buffer.getNumSamples(); 
-    /*
-    if (buffer.getMagnitude(0, bs) == false && out.getMagnitude(0,bs) == false) {
+    const int bs = buffer.getNumSamples();
+
+
+    // Check for sufficient input channels
+ 
+  
+    if (buffer.getMagnitude(0, bs) == false && out.getMagnitude(0, bs) == false) {
         return;
     }
-    */
 
     auto inputs = getBusBuffer(buffer, true, 0);
 

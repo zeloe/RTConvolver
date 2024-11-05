@@ -44,9 +44,9 @@ public:
 
 
 		float fac = atomic_gain.load();
-		float*const* outs = bufferToProcess.getArrayOfWritePointers();
+	
 		for (int channel = 0; channel < 2; ++channel) {
-			float* buffer = outs[channel]; // Get the float pointer for each channel
+			float* buffer = bufferToProcess.getWritePointer(channel);
 			for (int sample = 0; sample < bs; ++sample) {
 				new_Gain = fac + pole * 0.99;
 				buffer[sample] *= new_Gain;
@@ -62,7 +62,7 @@ public:
 
 private:
 	juce::AudioProcessorValueTreeState& parameters;
-	std::atomic<float>* gain;
+	std::atomic<float>* gain = nullptr;
 	std::atomic<float> atomic_gain;
 	float pole = 0;
 	float new_Gain = 0;
