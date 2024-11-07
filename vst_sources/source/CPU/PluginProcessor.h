@@ -54,6 +54,8 @@ private:
     std::unique_ptr <Gain> gain;
     juce::AudioBuffer<float> out;
     juce::AudioBuffer<float> sliceBuf;
+    int maxBs;
+    int totalSize = 0;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

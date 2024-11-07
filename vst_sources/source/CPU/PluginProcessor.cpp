@@ -10,6 +10,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                      .withInput("Sidechain Input", juce::AudioChannelSet::stereo(), true) // Sidechain bus
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+                     
                      #endif
                        ),
                        treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::createParameterLayout())
@@ -60,7 +61,7 @@ bool AudioPluginAudioProcessor::isMidiEffect() const
 
 double AudioPluginAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
+    return 6;
 }
 
 int AudioPluginAudioProcessor::getNumPrograms()
@@ -94,15 +95,17 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     DBG(samplesPerBlock);
-    int totalSize = (((sampleRate * 2) / samplesPerBlock) + 1) * samplesPerBlock;
+    //this is the total amount of samples in circualr buffer do not set this too high
+    totalSize = (((sampleRate * 4) / samplesPerBlock) + 1) * samplesPerBlock;
     gain->prepare();
     swapper->prepare(samplesPerBlock, totalSize);
     
    
     sliceBuf.setSize(4,samplesPerBlock);
     sliceBuf.clear();
-    out.setSize(2, samplesPerBlock);
-    out.clear();
+   
+
+    maxBs = samplesPerBlock;
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -112,99 +115,45 @@ void AudioPluginAudioProcessor::releaseResources()
 }
 bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    // Ensure that main buses are not disabled
-    if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled() ||
-        layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
-    {
-        return false;
-    }
+    const int numInputMain = layouts.getNumChannels(true, 0);
+    const int numInputSide = layouts.getNumChannels(true, 1);
+    const int numOutput = layouts.getMainOutputChannels();
 
-    // Ensure that the main output bus is either mono or stereo
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono() &&
-        layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-    {
-        return false;
-    }
 
-    // Ensure that the input and output channel sets are the same
-    if (layouts.getMainInputChannelSet() != layouts.getMainOutputChannelSet())
-    {
-        return false; // Input and output must match
-    }
 
-    // Handle sidechain if it exists
-    if (layouts.getBuses(true).size() > 1) // Checking input buses
-    {
-        for (int i = 1; i < layouts.getBuses(true).size(); ++i) // Start from the second bus
-        {
-            if (layouts.getNumChannels(true, i) > 0) // Check if there's a channel
-            {
-                auto sidechainChannelSet = layouts.getChannelSet(true, i);
-                // Ensure sidechain is either mono or stereo
-                if (sidechainChannelSet != juce::AudioChannelSet::mono() &&
-                    sidechainChannelSet != juce::AudioChannelSet::stereo())
-                {
-                    return false;
-                }
-            }
-        }
-    }
+    if (numInputMain == 2 && numOutput == 2 && numInputSide == 2)
+        return true;
 
-    return true; // All checks passed; layout is supported
+    return false;
+
 }
-
+ 
 void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
     const int bs = buffer.getNumSamples();
+    auto inputBus = getBus(true, 0);
+    auto inputBuffer= inputBus->getBusBuffer(buffer);
+    auto sideChainBus = getBus(true, 1);
+    auto sideChainBuffer = sideChainBus->getBusBuffer(buffer);
 
 
-    // Check for sufficient input channels
- 
-  
-    if (buffer.getMagnitude(0, bs) == false && out.getMagnitude(0, bs) == false) {
-        return;
-    }
-
-    auto inputs = getBusBuffer(buffer, true, 0);
-
-
-
-    auto sidechainInput = getBusBuffer(buffer, true, 1); // 1 is the index for the sidechain bus
     // Clear and copy input data to sliceBuf
     sliceBuf.clear();
-    const float* inputA = inputs.getReadPointer(0);
-    const float* inputB = inputs.getReadPointer(1);
-    
-    const float* sideChainC = sidechainInput.getReadPointer(0);
-    const float* sideChainD = sidechainInput.getReadPointer(1);
+    sliceBuf.copyFrom(0, 0, inputBuffer, 0 ,0, bs);
+    sliceBuf.copyFrom(1, 0, inputBuffer, 1, 0, bs);
+    sliceBuf.copyFrom(2, 0, sideChainBuffer, 0, 0, bs);
+    sliceBuf.copyFrom(3, 0, sideChainBuffer, 1, 0, bs);
+    auto outBus = getBus(false, 0);
+    auto outBuffer = outBus->getBusBuffer(buffer);
+    swapper->push(sliceBuf, outBuffer);
+     
 
-    float* sliceA = sliceBuf.getWritePointer(0);
-    float* sliceB = sliceBuf.getWritePointer(1);
-    float* sliceC = sliceBuf.getWritePointer(2);
-    float* sliceD = sliceBuf.getWritePointer(3);
+    gain->process(outBuffer);
 
-
-    std::copy(inputA, inputA + bs, sliceA);
-    std::copy(inputB, inputB + bs, sliceB);
-    std::copy(sideChainC, sideChainC + bs, sliceC);
-    std::copy(sideChainD, sideChainD + bs, sliceD);
-    
-
-
-
-    swapper->push(sliceBuf);
-    
-    swapper->retrieveProcessedBuffer(out,bs);
-
-    buffer.copyFrom(0, 0, out, 0, 0, bs);
-    buffer.copyFrom(1, 0, out, 1, 0, bs);
-
-
-    gain->process(buffer);
-
+  
    
 }
 
