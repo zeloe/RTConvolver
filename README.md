@@ -4,8 +4,6 @@ A realtime convolution VST3.
 
 ![SignalFlow](https://github.com/user-attachments/assets/4eb5a563-39f0-47b4-afc2-9028b1854ef8)
 
-
-It performs linear convolvtion on NVIDIA GPUs 4 different signals into 2 in realtime. \
 All heavylifting is done on GPU. \
 Main inputs(1 & 2) are convolved with side chain inputs (3 & 4)  and will determine 2 outputs.
 
