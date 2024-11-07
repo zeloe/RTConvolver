@@ -27,4 +27,6 @@ Works in Reaper and Ableton 12.
 NVIDIA GTX 1660 TI
 
 ## To Do
-I will add a new parameter for handling size of both convolution buffers.
+I will add a new parameter for handling size of all four convolution buffers. \
+Find right scale value for each length of convolution buffer. \
+Find proper way for multithreading. 
