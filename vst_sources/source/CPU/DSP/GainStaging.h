@@ -35,6 +35,7 @@ public:
 				atomic_gain.store(newParam);
 				paramComp = newValue;
 			}
+			wait(1);
 		}
 	}
 
@@ -44,15 +45,15 @@ public:
 
 
 		float fac = atomic_gain.load();
-	
-		for (int channel = 0; channel < 2; ++channel) {
-			float* buffer = bufferToProcess.getWritePointer(channel);
-			for (int sample = 0; sample < bs; ++sample) {
-				new_Gain = fac + pole * 0.99;
-				buffer[sample] *= new_Gain;
-				pole = new_Gain;
-			}
+		float* bufferL = bufferToProcess.getWritePointer(0);
+		float* bufferR = bufferToProcess.getWritePointer(1);
+		for (int sample = 0; sample < bs; ++sample) {
+			new_Gain = fac + pole * 0.99;
+			bufferL[sample] *= new_Gain;
+			bufferR[sample] *= new_Gain;
+			pole = new_Gain;
 		}
+		
 
 
 
@@ -66,7 +67,7 @@ private:
 	std::atomic<float> atomic_gain;
 	float pole = 0;
 	float new_Gain = 0;
-	const float epsilon = 0.0001f;  // Define a small tolerance value
+	const float epsilon = 0.001f;  // Define a small tolerance value
 	float paramComp = 0;
 
 
