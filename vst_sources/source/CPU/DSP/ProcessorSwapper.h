@@ -42,21 +42,24 @@ public:
 
 
         // Copy input data to the buffer to be processed
-        bufferToProcess.copyFrom(0, 0, inputBuffer, 0, 0, bs); // Left channel
-        bufferToProcess.copyFrom(1, 0, inputBuffer, 1, 0, bs); // Right channel
-        bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
-        bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
+    //    bufferToProcess.copyFrom(0, 0, inputBuffer, 0, 0, bs); // Left channel
+    //    bufferToProcess.copyFrom(1, 0, inputBuffer, 1, 0, bs); // Right channel
+    //    bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
+    //    bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
 
          
- 
+      
+        // Call the convolution engine to process the audio
+        convEngine->process(leftChannelA, rightChannelA, leftChannelB, rightChannelB,
+            outputBuffer.getWritePointer(0), outputBuffer.getWritePointer(1));
        
 
         // Signal background thread to start processing
-        processingInBackground.store(true, std::memory_order_release);
+     //   processingInBackground.store(true, std::memory_order_release);
 
         // Copy the result to the output buffer after processing
-        outputBuffer.copyFrom(0, 0, bufferToProcess2, 0, 0, outputBuffer.getNumSamples());
-        outputBuffer.copyFrom(1, 0, bufferToProcess2, 1, 0, outputBuffer.getNumSamples());
+     //   outputBuffer.copyFrom(0, 0, bufferToProcess2, 0, 0, outputBuffer.getNumSamples());
+     //   outputBuffer.copyFrom(1, 0, bufferToProcess2, 1, 0, outputBuffer.getNumSamples());
     }
 
     void run() override
