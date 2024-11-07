@@ -4,8 +4,6 @@ A realtime convolution VST3.
 
 ![SignalFlow](https://github.com/user-attachments/assets/4eb5a563-39f0-47b4-afc2-9028b1854ef8)
 
-
-It performs linear convolvtion on NVIDIA GPUs 4 different signals into 2 in realtime. \
 All heavylifting is done on GPU. \
 Main inputs(1 & 2) are convolved with side chain inputs (3 & 4)  and will determine 2 outputs.
 
@@ -20,10 +18,13 @@ You will need a working cuda compiler (NVCC).
 ## Known Issues
 Sometimes there is some latency. \
 Doesn't properly work inside juce audio plugin host. \
-You will need a buffersize between 256 - 1024. 
-
+You will need a buffersize between 256 - 1024. \
+Offline rendering doesn't work.
 ## What works
 See it in action [Video](https://www.youtube.com/watch?v=qdwZHD6MNM8) \
-Works in Reaper.
+Works in Reaper and Ableton 12.
 ## Hardware
 NVIDIA GTX 1660 TI
+
+## To Do
+I will add a new parameter for handling size of both convolution buffers.
