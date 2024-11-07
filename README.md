@@ -20,10 +20,13 @@ You will need a working cuda compiler (NVCC).
 ## Known Issues
 Sometimes there is some latency. \
 Doesn't properly work inside juce audio plugin host. \
-You will need a buffersize between 256 - 1024. 
-
+You will need a buffersize between 256 - 1024. \
+Offline rendering doesn't work.
 ## What works
 See it in action [Video](https://www.youtube.com/watch?v=qdwZHD6MNM8) \
 Works in Reaper.
 ## Hardware
 NVIDIA GTX 1660 TI
+
+## To Do
+I will add a new parameter for handling size of both convolution buffers.
