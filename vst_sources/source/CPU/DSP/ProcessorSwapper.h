@@ -44,15 +44,11 @@ public:
         // Copy input data to the buffer to be processed
         bufferToProcess.copyFrom(0, 0, inputBuffer, 0, 0, bs); // Left channel
         bufferToProcess.copyFrom(1, 0, inputBuffer, 1, 0, bs); // Right channel
-        bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // Left channel
-        bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // Right channel
+        bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
+        bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
 
-
-        // Wait until the background thread is done processing the previous buffer
-        while (processingInBackground.load(std::memory_order_acquire)) {
-            // Busy-wait (spin) or handle other tasks here
-        }
-
+         
+ 
        
 
         // Signal background thread to start processing

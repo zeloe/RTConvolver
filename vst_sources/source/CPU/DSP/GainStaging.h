@@ -35,7 +35,7 @@ public:
 				atomic_gain.store(newParam);
 				paramComp = newValue;
 			}
-			wait(1);
+
 		}
 	}
 
@@ -47,6 +47,7 @@ public:
 		float fac = atomic_gain.load();
 		float* bufferL = bufferToProcess.getWritePointer(0);
 		float* bufferR = bufferToProcess.getWritePointer(1);
+
 		for (int sample = 0; sample < bs; ++sample) {
 			new_Gain = fac + pole * 0.99;
 			bufferL[sample] *= new_Gain;
