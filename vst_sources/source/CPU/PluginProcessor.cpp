@@ -61,7 +61,7 @@ bool AudioPluginAudioProcessor::isMidiEffect() const
 
 double AudioPluginAudioProcessor::getTailLengthSeconds() const
 {
-    return 6;
+    return 0.f;
 }
 
 int AudioPluginAudioProcessor::getNumPrograms()
