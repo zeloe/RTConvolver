@@ -27,6 +27,10 @@ public:
         bufferToProcess2.setSize(2, bs);
         bufferToProcess.clear();
         bufferToProcess2.clear();
+        absBuffer.setSize(1, bs);
+        absBuffer.clear();
+        scaleFactors.setSize(1, 2);
+        scaleFactors.clear();
         convEngine->prepare(samplesPerBlock, size);
         startThread(Priority::normal);
     }
@@ -34,11 +38,7 @@ public:
     // Push the buffer to the background thread for processing
     void push(juce::AudioBuffer<float>& inputBuffer, juce::AudioBuffer<float>& outputBuffer)
     {
-        const float* leftChannelA = inputBuffer.getReadPointer(0);
-        const float* rightChannelA = inputBuffer.getReadPointer(1);
-        const float* leftChannelB = inputBuffer.getReadPointer(2);
-        const float* rightChannelB = inputBuffer.getReadPointer(3);
-
+      
 
 
         // Copy input data to the buffer to be processed
@@ -47,8 +47,13 @@ public:
     //    bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
     //    bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
 
-         
-      
+        //scale channels 3 and 4
+        calculateScaleFactor(inputBuffer);
+        const float* leftChannelA = inputBuffer.getReadPointer(0);
+        const float* rightChannelA = inputBuffer.getReadPointer(1);
+        const float* leftChannelB = inputBuffer.getReadPointer(2);
+        const float* rightChannelB = inputBuffer.getReadPointer(3);
+
         // Call the convolution engine to process the audio
         convEngine->process(leftChannelA, rightChannelA, leftChannelB, rightChannelB,
             outputBuffer.getWritePointer(0), outputBuffer.getWritePointer(1));
@@ -79,7 +84,8 @@ private:
     std::unique_ptr<GPUConvEngine> convEngine;
     juce::AudioBuffer<float> bufferToProcess;  // Buffer for storing the input data
     juce::AudioBuffer<float> bufferToProcess2; // Buffer for storing the output
-
+    juce::AudioBuffer<float> scaleFactors;
+    juce::AudioBuffer<float> absBuffer;
     int bs = 0; // Number of samples per block
 
     std::atomic<bool> processingInBackground{ false };  // Atomic flag to indicate whether the background thread is processing
@@ -100,6 +106,37 @@ private:
         bufferToProcess2.copyFrom(0, 0, bufferToProcess, 0, 0, bs);  // Left channel
         bufferToProcess2.copyFrom(1, 0, bufferToProcess, 1, 0, bs);  // Right channel
     }
-};
 
+void calculateScaleFactor(juce::AudioBuffer<float>& impulseResponse)
+{
+    const int numChannels = impulseResponse.getNumChannels();
+
+
+    int offset = 0;
+    float* absWrite = absBuffer.getWritePointer(0);
+    const float* absRead = absBuffer.getReadPointer(0);
+    // Calculate the sum of absolute values of the impulse response for each channel
+    for (int ch = 2; ch < numChannels; ++ch)  // Only process IR channels
+    {
+        const float* data = impulseResponse.getReadPointer(ch);
+
+
+
+        juce::FloatVectorOperations::abs(absWrite, data, bs);
+        // Accumulate the sum of absolute values
+        float sum = 0.0f;
+        for (int i = 0; i < bs; ++i)
+        {
+            sum += absRead[i];
+        }
+        float* scaleWrite = scaleFactors.getWritePointer(0);
+        // Compute the scale factor
+        scaleWrite[offset] = (sum > 0.0f) ? 1.0f / sum : 1.0f;
+        offset++;
+    }
+    const float* scaleRead = scaleFactors.getReadPointer(0);
+    impulseResponse.applyGain(2, 0, bs, scaleRead[0]);
+    impulseResponse.applyGain(3, 0, bs, scaleRead[1]);
+}
+};
 #endif
