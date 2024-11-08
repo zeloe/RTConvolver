@@ -34,14 +34,11 @@ __global__ void shared_partitioned_convolution(float* __restrict__ Result, const
 	// Write the accumulated result to global memory (only for the first thread)
 	if (copy_idx == 0) {
 		// Write the first part of the result (up to SIZES[0] - 1)
-		for (int i = 0; i < SIZES[0] - 1; i++) {
+		for (int i = 0; i < 2 * SIZES[0] - 1; i++) {
 			atomicAdd(&Result[i], tempResult[i]);
 		}
 
-		// Write the second part of the result (for the overlap, from SIZES[0] - 1 to 2 * SIZES[0] - 2)
-		for (int i = SIZES[0] - 1; i < 2 * SIZES[0] - 1; i++) {
-			atomicAdd(&Result[i], tempResult[i]);
-		}
+		 
 	}
 	 
 }
