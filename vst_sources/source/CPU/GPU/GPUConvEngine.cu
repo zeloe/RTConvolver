@@ -185,24 +185,23 @@ void  GPUConvEngine::process(const float* in, const float* in2, const float* in3
 	//launch the convolution Engine
 	launchEngine();
 
-	
-	__m128 scale = _mm_set1_ps(0.015f); // Load scaling factor into an SSE register
+	   
 
 	for (int i = 0; i < bs; i += 4) {
 		// Load 4 floats from h_ConvolutionResL and h_OverlapL
 		__m128 resL = _mm_loadu_ps(&h_ConvolutionResL[i]);
 		__m128 overlapL = _mm_loadu_ps(&h_OverlapL[i]);
 
-		// Perform (resL + overlapL) * scale for left channel
-		__m128 resultL = _mm_mul_ps(_mm_add_ps(resL, overlapL), scale);
+		// Perform (resL + overlapL) 
+		__m128 resultL = _mm_add_ps(resL, overlapL);
 		_mm_storeu_ps(&out1[i], resultL); // Store the result in out1
 
 		// Load 4 floats from h_ConvolutionResR and h_OverlapR
 		__m128 resR = _mm_loadu_ps(&h_ConvolutionResR[i]);
 		__m128 overlapR = _mm_loadu_ps(&h_OverlapR[i]);
 
-		// Perform (resR + overlapR) * scale for right channel
-		__m128 resultR = _mm_mul_ps(_mm_add_ps(resR, overlapR), scale);
+		// Perform (resR + overlapR)
+		__m128 resultR = _mm_add_ps(resR, overlapR);
 		_mm_storeu_ps(&out2[i], resultR); // Store the result in out2
 
 	 
