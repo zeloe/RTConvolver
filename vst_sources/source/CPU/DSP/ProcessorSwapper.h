@@ -21,18 +21,18 @@ public:
         stopThread(2000); // Gracefully stop the thread after waiting for 2 seconds.
     }
 
-    void prepare(int samplesPerBlock, int size)
+    void prepare(int samplesPerBlock, int sampleRate)
     {
         bs = samplesPerBlock;
         bufferToProcess.setSize(4, bs);
         bufferToProcess2.setSize(2, bs);
         bufferToProcess.clear();
         bufferToProcess2.clear();
-        absBuffer.setSize(1, bs);
+        absBuffer.setSize(2, bs);
         absBuffer.clear();
         scaleFactors.setSize(1, 2);
         scaleFactors.clear();
-        convEngine->prepare(samplesPerBlock, size);
+        convEngine->prepare(samplesPerBlock, sampleRate);
        
     }
 
@@ -48,16 +48,20 @@ public:
         bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
         bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
 
-        //scale channels 1 and 2
-        calculateScaleFactor(bufferToProcess);
+     
+       
 
         // Signal background thread to start processing
         processingInBackground.store(true, std::memory_order_release);
-     
+        
         // Copy the result to the output buffer after processing
           outputBuffer.copyFrom(0, 0, bufferToProcess2, 0, 0, outputBuffer.getNumSamples());
           outputBuffer.copyFrom(1, 0, bufferToProcess2, 1, 0, outputBuffer.getNumSamples());
-     
+          //scale channels 1 and 2
+          calculateScaleFactor(outputBuffer);
+
+
+
     }
 
     void run() override
@@ -105,26 +109,25 @@ void calculateScaleFactor(juce::AudioBuffer<float>& output)
     const int numSamples = output.getNumSamples();
     float* absWrite = absBuffer.getWritePointer(0);
     const float* absRead = absBuffer.getReadPointer(0);
-    for (int ch = 0; ch < 2; ++ch)  
+    for (int ch = 0; ch < 2; ++ch)
     {
-        const float* data = output.getReadPointer(ch);
+         
+         
+        float rms = output.getRMSLevel(ch, 0, numSamples);
+        
+    
+        float scaleFactor = 0.20f /(rms +1e-6f);
 
 
 
-        juce::FloatVectorOperations::abs(absWrite, data, bs);
-        // Accumulate the sum of absolute values
-        float sum = 0.0f;
-        for (int i = 0; i < numSamples; ++i)
-        {
-            sum += absRead[i];
-        }
-        float* scaleWrite = scaleFactors.getWritePointer(0);
-        // Compute the scale factor
-        scaleWrite[ch] = (sum > 0.0f) ? 1.0f / sum : 1.0f;
+        output.applyGain(ch, 0, numSamples, scaleFactor);
+
+        
+
     }
-    const float* scaleRead = scaleFactors.getReadPointer(0);
-    output.applyGain(0, 0, numSamples, scaleRead[0]);
-    output.applyGain(1, 0, numSamples, scaleRead[1]);
+  
+   
 }
+
 };
 #endif
