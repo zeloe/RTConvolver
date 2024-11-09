@@ -34,7 +34,7 @@ __global__ void shared_partitioned_convolution(float* __restrict__ Result, const
 	// Write the accumulated result to global memory (only for the first thread)
 	if (copy_idx == 0) {
 		// Write the first part of the result (up to SIZES[0] * 2 - 1)
-		for (int i = 0; i < 2 * SIZES[0] - 1; i++) {
+		for (int i = 0; i < SIZES[1]; i++) {
 			atomicAdd(&Result[i], tempResult[i]);
 		}
 
@@ -77,14 +77,13 @@ __global__ void zeroOutArray(float* data) {
 
 GPUConvEngine::GPUConvEngine() {
 	cudaStreamCreate(&stream);
-	bs = 1024;
-	int size = (((96000 * 4) / bs) + 1) * bs;
+	bs = maxBufferSize;
+	sizeMax = (((96000) / bs) + 1) * bs;
 	h_convResSize = bs * 2 - 1;
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
-	(cudaMemset(d_ConvolutionResL, 0, floatSizeRes));
-	(cudaMemset(d_ConvolutionResR, 0, floatSizeRes));
+
 	SHMEM = 2 * sizeof(float) * bs + floatSizeRes;
  
 	bs_float = bs * sizeof(float);
@@ -97,9 +96,9 @@ GPUConvEngine::GPUConvEngine() {
 	h_index = 0;
 	cpu_sizes[0] = bs;
 
-	(cudaMemset(INPUT, 0, bs * sizeof(float)));
 
-	h_numPartitions = size / bs;
+
+	h_numPartitions = sizeMax / bs;
 	h_paddedSize = h_numPartitions * bs;
 
 	cpu_sizes[1] = h_convResSize;
@@ -108,16 +107,25 @@ GPUConvEngine::GPUConvEngine() {
 
 	(cudaMalloc((void**)&d_IR_paddedL, h_paddedSize * sizeof(float)));
 	(cudaMalloc((void**)&d_IR_paddedR, h_paddedSize * sizeof(float)));
-	(cudaMemset(d_IR_paddedL, 0, h_paddedSize * sizeof(float)));
-	(cudaMemset(d_IR_paddedR, 0, h_paddedSize * sizeof(float)));
+
 	(cudaMalloc((void**)&d_TimeDomain_paddedL, h_paddedSize * sizeof(float)));
 	(cudaMalloc((void**)&d_TimeDomain_paddedR, h_paddedSize * sizeof(float)));
+	
+	clear();
+	free(cpu_sizes);
+}
+void GPUConvEngine::clear() {
+	int floatSizeResMax = maxBufferSize * sizeof(float);
+	(cudaMemset(d_ConvolutionResL, 0, floatSizeResMax));
+	(cudaMemset(d_ConvolutionResR, 0, floatSizeResMax));
+	(cudaMemset(INPUT, 0, maxBufferSize * sizeof(float)));
+	(cudaMemset(INPUT2, 0, maxBufferSize * sizeof(float)));
+	(cudaMemset(d_IR_paddedL, 0, h_paddedSize * sizeof(float)));
+	(cudaMemset(d_IR_paddedR, 0, h_paddedSize * sizeof(float)));
 	(cudaMemset(d_TimeDomain_paddedL, 0, h_paddedSize * sizeof(float)));
 	(cudaMemset(d_TimeDomain_paddedR, 0, h_paddedSize * sizeof(float)));
 
-	free(cpu_sizes);
 }
-
 
 
 GPUConvEngine::~GPUConvEngine() {
@@ -155,14 +163,16 @@ void GPUConvEngine::checkCudaError(cudaError_t err, const char* errMsg) {
 	}
 }
 
-void GPUConvEngine::prepare(int maxBufferSize, int size) {
+void GPUConvEngine::prepare(int maxBufferSize, int sampleRate) {
 
 	bs = maxBufferSize;
-
+	bs_float = bs * sizeof(float);
+	h_convResSize = bs * 2 - 1;
+	floatSizeRes = h_convResSize * sizeof(float);
 	dThreads.x = bs;
-
-	h_numPartitions = size / bs;
-	h_paddedSize = h_numPartitions * bs;
+	h_paddedSize = ((sampleRate / bs) + 1) * bs; 
+	h_numPartitions = h_paddedSize / bs;
+	
 	dBlocks.x = (h_numPartitions);
 
 	threadsPerBlock.x = bs;
@@ -170,6 +180,12 @@ void GPUConvEngine::prepare(int maxBufferSize, int size) {
 
 	threadsPerBlockZero = bs;
 	numBlocksZero = (h_convResSize + threadsPerBlockZero - 1) / threadsPerBlockZero;
+	int* cpu_sizes = (int*)calloc(2, sizeof(int));
+	cpu_sizes[0] = bs;
+	cpu_sizes[1] = h_convResSize;
+	cudaMemcpyToSymbol(SIZES, cpu_sizes, 2 * sizeof(int));
+	clear();
+	free(cpu_sizes);
 }
 
 

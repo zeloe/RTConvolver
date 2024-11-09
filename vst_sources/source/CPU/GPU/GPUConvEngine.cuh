@@ -25,12 +25,13 @@ public:
 	void  prepare(int maxBufferSize, int size);
 	
 private:
+	void clear();
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
 	
-	
-
+	int sizeMax = 0;
+	const int maxBufferSize = 1024;
 	int bs = 0;
 	int bs_float = 0;
 	int h_numPartitions = 0;
