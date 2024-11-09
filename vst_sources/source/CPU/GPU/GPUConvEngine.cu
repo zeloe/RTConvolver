@@ -33,7 +33,7 @@ __global__ void shared_partitioned_convolution(float* __restrict__ Result, const
 
 	// Write the accumulated result to global memory (only for the first thread)
 	if (copy_idx == 0) {
-		// Write the first part of the result (up to SIZES[0] - 1)
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
 		for (int i = 0; i < 2 * SIZES[0] - 1; i++) {
 			atomicAdd(&Result[i], tempResult[i]);
 		}
