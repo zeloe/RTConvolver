@@ -27,7 +27,7 @@ Works in Reaper and Ableton 12.
 NVIDIA GTX 1660 TI
 
 ## To Do
-I will add a new parameter for handling size of all four convolution buffers.  
+Add proper kernels using maximum number of threads for each buffersize.
 
 ## Download (early build windows)
 [Download](https://github.com/zeloe/RTConvolver/releases/tag/v.0.0.1)
