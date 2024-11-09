@@ -96,9 +96,9 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 {
     DBG(samplesPerBlock);
     //this is the total amount of samples in circualr buffer do not set this too high
-    totalSize = (((sampleRate * 4) / samplesPerBlock) + 1) * samplesPerBlock;
+    
     gain->prepare();
-    swapper->prepare(samplesPerBlock, totalSize);
+    swapper->prepare(samplesPerBlock, sampleRate);
     
    
     sliceBuf.setSize(4,samplesPerBlock);
