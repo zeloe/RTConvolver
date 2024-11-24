@@ -2,7 +2,6 @@
 #include <JuceHeader.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "pluginparamers/PluginParameters.h"
-#include "GPU/GPUConvEngine.cuh"
 #include "DSP/ProcessorSwapper.h"
 #include "DSP/GainStaging.h"
 //==============================================================================

@@ -1,32 +1,38 @@
 
-#ifndef _GPUConvEngine_H_
+#ifndef _GPUConvEngine256_H_
 
-#define _GPUConvEngine_H_
-
+#define _GPUConvEngine256_H_
 #include <stdlib.h> 
 
 #include "cuda_runtime.h"
 #include <device_launch_parameters.h>
 
 #include <stdio.h>
+#include <omp.h>
+#include <immintrin.h> // For SSE intrinsics
 #include <cstring>
 
-// this is an empty class in case blocksize > 1024 
-class GPUConvEngine {
+__global__ void shared_partitioned_convolution_256(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void  shiftAndInsertKernel_256(float* __restrict__ delayBuffer);
+__global__ void  shiftAndInsertKernel2_256(float* __restrict__ delayBuffer);
+ 
+class GPUConvEngine_256 {
 public:
-	GPUConvEngine();
-	~GPUConvEngine();
-	 
-	void getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
-	 
+	GPUConvEngine_256();
+	~GPUConvEngine_256();
+	
+	void  process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
+	void  prepare(int sampleRate);
+	void clear();
 private:
-<<<<<<< Updated upstream
+
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
 	
-	
-
+	int sizeMax = 0;
+	const int maxBufferSize = 256;
+	const int maxThreads = 1024;
 	int bs = 0;
 	int bs_float = 0;
 	int h_numPartitions = 0;
@@ -55,9 +61,6 @@ private:
 	cudaStream_t stream;
 	int threadsPerBlockZero = 0;
 	int numBlocksZero = 0;
-=======
-  
->>>>>>> Stashed changes
 };
 
 

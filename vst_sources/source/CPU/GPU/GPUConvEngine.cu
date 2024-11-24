@@ -1,26 +1,7 @@
 
 #include "GPUConvEngine.cuh"
-// Define the constant memory array
-__constant__ int SIZES[2];
-__constant__ float INPUT[1024];
-__constant__ float INPUT2[1024];
-__global__ void shared_partitioned_convolution(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
-	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
-	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
-	
-	// Declare pointers to the shared memory partitions
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES[0]];
-	float* tempResult = &partArray[SIZES[0] * 2];
-	// Load data into shared memory
-	tempResult[copy_idx] = 0.f;
-	tempResult[SIZES[0] + copy_idx] = 0.f;
-	arr1[copy_idx] = Dry[thread_idx];
-	arr2[copy_idx] = Imp[thread_idx];
-	
-	__syncthreads();
 
+<<<<<<< Updated upstream
 	// Shared memory to accumulate results before writing them to global memory
 	// Convolution operation (reduction into shared memory)
 	for (int i = 0; i < SIZES[0]; i++) {
@@ -75,10 +56,13 @@ __global__ void zeroOutArray(float* data) {
 		data[idx] = 0.0f;
 	}
 }
+=======
+>>>>>>> Stashed changes
 
 
 
 GPUConvEngine::GPUConvEngine() {
+<<<<<<< Updated upstream
 	cudaStreamCreate(&stream);
 }
 
@@ -235,5 +219,23 @@ void  GPUConvEngine::launchEngine() {
 	//update index
 
 	h_index = (h_index + 1) % (h_numPartitions);
+=======
+}
+
+
+GPUConvEngine::~GPUConvEngine() {
+>>>>>>> Stashed changes
 	
 }
+  
+
+
+
+
+
+void  GPUConvEngine::getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2)  {
+	return;
+}
+
+
+ 
