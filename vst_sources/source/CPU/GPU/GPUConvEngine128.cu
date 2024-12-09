@@ -2,8 +2,8 @@
 #include "GPUConvEngine128.cuh"
 // Define the constant memory array
 __constant__ int SIZES_128[2];
-__constant__ float INPUT_128[1024];
-__constant__ float INPUT2_128[1024];
+__constant__ float INPUT_128[128];
+__constant__ float INPUT2_128[128];
 __global__ void shared_partitioned_convolution_128(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
 	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 	const unsigned int copy_idx = threadIdx.x;
@@ -71,42 +71,45 @@ __global__ void  shiftAndInsertKernel2_128(float* __restrict__ delayBuffer) {
 
 GPUConvEngine_128::GPUConvEngine_128() {
 	cudaStreamCreate(&stream);
-	bs = maxBufferSize;
-	sizeMax = (((96000) / bs) + 1) * bs;
-	h_convResSize = bs * 2 - 1;
+
+	sizeMax = (((48000 * 6) / maxBufferSize) + 1) * maxBufferSize;
+	h_convResSize = maxBufferSize * 2;
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
+	h_numPartitions = sizeMax / maxBufferSize;
+	SHMEM = 4 * sizeof(float) * maxBufferSize;
 
-	SHMEM = 2 * sizeof(float) * bs + floatSizeRes;
- 
-	bs_float = bs * sizeof(float);
-	int* cpu_sizes = (int*)calloc(2, sizeof(int));
+	bs_float = maxBufferSize * sizeof(float);
+
+
+
 
 	h_ConvolutionResL = (float*)calloc(h_convResSize, sizeof(float));
 	h_ConvolutionResR = (float*)calloc(h_convResSize, sizeof(float));
-	h_OverlapL = (float*)calloc(bs, sizeof(float));
-	h_OverlapR = (float*)calloc(bs, sizeof(float));
+	h_OverlapL = (float*)calloc(maxBufferSize, sizeof(float));
+	h_OverlapR = (float*)calloc(maxBufferSize, sizeof(float));
 	h_index = 0;
-	cpu_sizes[0] = bs;
 
-
-
-	h_numPartitions = sizeMax / bs;
-	h_paddedSize = h_numPartitions * bs;
-
+	cpu_sizes = (int*)calloc(3, sizeof(int));
+	cpu_sizes[0] = maxBufferSize;
 	cpu_sizes[1] = h_convResSize;
-	cudaMemcpyToSymbol(SIZES_128, cpu_sizes, 2 * sizeof(int));
+	cpu_sizes[2] = h_numPartitions;
+	cudaMemcpyToSymbol(SIZES_128, cpu_sizes, 3 * sizeof(int));
 
+
+
+	//check this
+	h_paddedSize = h_numPartitions * maxBufferSize * 4;
+	 
 
 	(cudaMalloc((void**)&d_IR_paddedL, h_paddedSize * sizeof(float)));
 	(cudaMalloc((void**)&d_IR_paddedR, h_paddedSize * sizeof(float)));
 
 	(cudaMalloc((void**)&d_TimeDomain_paddedL, h_paddedSize * sizeof(float)));
 	(cudaMalloc((void**)&d_TimeDomain_paddedR, h_paddedSize * sizeof(float)));
-	
+
 	clear();
-	free(cpu_sizes);
 }
 void GPUConvEngine_128::clear() {
 	int floatSizeResMax = maxBufferSize * sizeof(float);
@@ -143,7 +146,7 @@ void GPUConvEngine_128::cleanup() {
 	free(h_ConvolutionResR);
 	free(h_OverlapL);
 	free(h_OverlapR);
-
+	free(cpu_sizes);
  
 
 
@@ -157,29 +160,21 @@ void GPUConvEngine_128::checkCudaError(cudaError_t err, const char* errMsg) {
 	}
 }
 
-void GPUConvEngine_128::prepare(int maxBufferSize, int sampleRate) {
+void GPUConvEngine_128::prepare(float size) {
+	cudaStreamSynchronize(stream);
 
-	bs = maxBufferSize;
-	bs_float = bs * sizeof(float);
-	h_convResSize = bs * 2 - 1;
-	floatSizeRes = h_convResSize * sizeof(float);
-	dThreads.x = bs;
-	h_paddedSize = ((sampleRate / bs) + 1) * bs; 
-	h_numPartitions = h_paddedSize / bs;
-	
-	dBlocks.x = (h_numPartitions);
+	// Ensure proper padding
+	int temp_h_paddedSize = (((size) / maxBufferSize) + 1) * maxBufferSize;
+	h_numPartitions = temp_h_paddedSize / maxBufferSize;
 
-	threadsPerBlock.x = bs;
-	numBlocks.x = (h_paddedSize + threadsPerBlock.x - 1) / threadsPerBlock.x;
+	// Update dBlocks and other parameters
+	dBlocks.x = h_numPartitions;
 
-	threadsPerBlockZero = bs;
-	numBlocksZero = (h_convResSize + threadsPerBlockZero - 1) / threadsPerBlockZero;
-	int* cpu_sizes = (int*)calloc(2, sizeof(int));
-	cpu_sizes[0] = bs;
-	cpu_sizes[1] = h_convResSize;
-	cudaMemcpyToSymbol(SIZES_128, cpu_sizes, 2 * sizeof(int));
-	clear();
-	free(cpu_sizes);
+	// Update sizes array
+	cpu_sizes[2] = h_numPartitions;
+
+	// Copy updated sizes to device
+	cudaMemcpyToSymbol(SIZES_128, cpu_sizes, sizeof(int) * 3);
 }
 
 
@@ -189,7 +184,7 @@ void GPUConvEngine_128::prepare(int maxBufferSize, int sampleRate) {
 void  GPUConvEngine_128::process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2)  {
 	 
 	//copy content and transfer
-	int indexBs = h_index * bs;
+	int indexBs = h_index * maxBufferSize;
 	cudaMemcpyToSymbolAsync(INPUT_128, in, bs_float,0, cudaMemcpyHostToDevice,stream);
 	cudaMemcpyToSymbolAsync(INPUT2_128, in2, bs_float,0, cudaMemcpyHostToDevice,stream);
 	cudaMemcpyAsync(d_IR_paddedL + indexBs, in3, bs_float, cudaMemcpyHostToDevice , stream);
@@ -202,7 +197,7 @@ void  GPUConvEngine_128::process(const float* in, const float* in2, const float*
 
 	   
 
-	for (int i = 0; i < bs; i += 4) {
+	for (int i = 0; i < maxBufferSize; i += 4) {
 		// Load 4 floats from h_ConvolutionResL and h_OverlapL
 		__m128 resL = _mm_loadu_ps(&h_ConvolutionResL[i]);
 		__m128 overlapL = _mm_loadu_ps(&h_OverlapL[i]);
@@ -223,8 +218,8 @@ void  GPUConvEngine_128::process(const float* in, const float* in2, const float*
 	}
 	
 	// Copy the last `bs` elements as overlap values for the next block
-	std::memcpy(h_OverlapL, &h_ConvolutionResL[bs -  1 ], bs_float);
- 	std::memcpy(h_OverlapR, &h_ConvolutionResR[bs -  1 ], bs_float);
+	std::memcpy(h_OverlapL, &h_ConvolutionResL[maxBufferSize -  1 ], bs_float);
+ 	std::memcpy(h_OverlapR, &h_ConvolutionResR[maxBufferSize -  1 ], bs_float);
 
 }
 
@@ -233,8 +228,8 @@ void  GPUConvEngine_128::process(const float* in, const float* in2, const float*
 
 void  GPUConvEngine_128::launchEngine() {
 
-	shiftAndInsertKernel_128 << <numBlocks, threadsPerBlock,0,stream >> > (d_TimeDomain_paddedL);
-	shiftAndInsertKernel2_128 << <numBlocks, threadsPerBlock, 0, stream >> > (d_TimeDomain_paddedR);
+	shiftAndInsertKernel_128 << <dBlocks, dThreads,0,stream >> > (d_TimeDomain_paddedL);
+	shiftAndInsertKernel2_128 << <dBlocks, dThreads, 0, stream >> > (d_TimeDomain_paddedR);
 	shared_partitioned_convolution_128 << <dBlocks,dThreads , SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
 	shared_partitioned_convolution_128 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
 	cudaMemcpyAsync(h_ConvolutionResL, d_ConvolutionResL, floatSizeRes, cudaMemcpyDeviceToHost, stream);

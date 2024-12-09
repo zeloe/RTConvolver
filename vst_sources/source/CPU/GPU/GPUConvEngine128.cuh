@@ -1,7 +1,7 @@
 
-#ifndef _GPUConvEngine_H_
+#ifndef _GPUConvEngine128_H_
 
-#define _GPUConvEngine_H_
+#define _GPUConvEngine128_H_
 #include <stdlib.h> 
 
 #include "cuda_runtime.h"
@@ -21,17 +21,17 @@ public:
 	~GPUConvEngine_128();
 	
 	void  process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
-	void  prepare(int maxBufferSize, int size);
-	
-private:
+	void  prepare(float size);
 	void clear();
+private:
+	
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
-	
+	int* cpu_sizes = nullptr;
 	int sizeMax = 0;
-	const int maxBufferSize = 1024;
-	int bs = 0;
+	const int maxBufferSize = 128;
+ 
 	int bs_float = 0;
 	int h_numPartitions = 0;
 	int h_paddedSize = 0;

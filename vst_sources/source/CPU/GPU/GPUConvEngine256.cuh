@@ -22,18 +22,17 @@ public:
 	~GPUConvEngine_256();
 	
 	void  process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
-	void  prepare(int sampleRate);
+	void  prepare(float size) ;
 	void clear();
 private:
 
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
-	
+	int* cpu_sizes = nullptr;
 	int sizeMax = 0;
 	const int maxBufferSize = 256;
-	const int maxThreads = 1024;
-	int bs = 0;
+	 
 	int bs_float = 0;
 	int h_numPartitions = 0;
 	int h_paddedSize = 0;

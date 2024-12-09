@@ -4,7 +4,7 @@
  __constant__ int SIZES_1024[3];
  __constant__ float INPUT_1024[1024];
  __constant__ float INPUT2_1024[1024];
-
+ 
 __global__ void   shiftAndInsertKernel_1024(float* __restrict__ delayBuffer) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	// Insert new elements at the beginning of the delay buffer
@@ -38,9 +38,11 @@ __global__ void  shared_partitioned_convolution_1024(float* __restrict__ Result,
 	float* arr1 = &partArray[0];
 	float* arr2 = &partArray[SIZES_1024[0]];
 	float* tempResult = &partArray[SIZES_1024[0] * 2];
-
+	// Load data into shared memory
 	tempResult[copy_idx] = 0.f;
 	tempResult[SIZES_1024[0] + copy_idx] = 0.f;
+
+	 
 	arr1[copy_idx] = Dry[thread_idx];
 	arr2[copy_idx] = Imp[thread_idx];
 
@@ -57,12 +59,11 @@ __global__ void  shared_partitioned_convolution_1024(float* __restrict__ Result,
 
 	// Write the accumulated result to global memory (only for the first thread)
 	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
 		#pragma unroll
 		for (int i = 0; i < SIZES_1024[1]; i++) {
 			atomicAdd(&Result[i], tempResult[i]);
 		}
-
-
 	}
 
 }
@@ -70,33 +71,33 @@ __global__ void  shared_partitioned_convolution_1024(float* __restrict__ Result,
 
 GPUConvEngine_1024::GPUConvEngine_1024() {
 	cudaStreamCreate(&stream);
-	bs = maxBufferSize;
+	 
 	dThreads.x = maxBufferSize;
-	sizeMax = (((48000 * 6) / bs) + 1) * bs;
-	h_convResSize = bs * 2 - 1;
+	sizeMax = (((48000 * 6) / maxBufferSize) + 1) *  maxBufferSize;
+	h_convResSize = maxBufferSize * 2;
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
 
-	SHMEM = 4 * sizeof(float) * bs ;
+	SHMEM = 4 * sizeof(float) * maxBufferSize;
  
-	bs_float = bs * sizeof(float);
+	bs_float = maxBufferSize * sizeof(float);
 	 
 
 	h_ConvolutionResL = (float*)calloc(h_convResSize, sizeof(float));
 	h_ConvolutionResR = (float*)calloc(h_convResSize, sizeof(float));
-	h_OverlapL = (float*)calloc(bs, sizeof(float));
-	h_OverlapR = (float*)calloc(bs, sizeof(float));
+	h_OverlapL = (float*)calloc(maxBufferSize, sizeof(float));
+	h_OverlapR = (float*)calloc(maxBufferSize, sizeof(float));
 	h_index = 0;
 	 
 
 
 
-	h_numPartitions = sizeMax / bs;
-	h_paddedSize = h_numPartitions * bs;
+	h_numPartitions = sizeMax / maxBufferSize;
+	h_paddedSize = h_numPartitions * maxBufferSize;
 	dBlocks.x = (h_numPartitions);
 	cpu_sizes = (int*)calloc(3, sizeof(int));
-	cpu_sizes[0] = bs;
+	cpu_sizes[0] = maxBufferSize;
 	cpu_sizes[1] = h_convResSize;
 	cpu_sizes[2] = h_numPartitions;
 	cudaMemcpyToSymbol(SIZES_1024, cpu_sizes, 3 * sizeof(int));
@@ -111,16 +112,20 @@ GPUConvEngine_1024::GPUConvEngine_1024() {
 	clear(); 
 	
 }
-void GPUConvEngine_1024::clear() {
-	int floatSizeResMax = maxBufferSize * sizeof(float);
-	(cudaMemset(d_ConvolutionResL, 0, floatSizeResMax));
-	(cudaMemset(d_ConvolutionResR, 0, floatSizeResMax));
+void GPUConvEngine_1024::clear() { int floatSizeResMax = 2 * maxBufferSize * sizeof(float);
+	(cudaMemset(d_ConvolutionResL, 0, floatSizeRes));
+	(cudaMemset(d_ConvolutionResR, 0, floatSizeRes));
 	(cudaMemset(INPUT_1024, 0, maxBufferSize * sizeof(float)));
 	(cudaMemset(INPUT2_1024, 0, maxBufferSize * sizeof(float)));
 	(cudaMemset(d_IR_paddedL, 0, h_paddedSize * sizeof(float)));
 	(cudaMemset(d_IR_paddedR, 0, h_paddedSize * sizeof(float)));
 	(cudaMemset(d_TimeDomain_paddedL, 0, h_paddedSize * sizeof(float)));
 	(cudaMemset(d_TimeDomain_paddedR, 0, h_paddedSize * sizeof(float)));
+	memset(h_ConvolutionResL, 0.f, floatSizeRes);
+	memset(h_ConvolutionResR, 0.f, floatSizeRes);
+	memset(h_OverlapL, 0.f, bs_float);
+	memset(h_OverlapR, 0.f, bs_float);
+
 	h_index = 0;
 }
 
@@ -159,26 +164,25 @@ void GPUConvEngine_1024::checkCudaError(cudaError_t err, const char* errMsg) {
 		printf("CUDA Error (%s): %s\n", errMsg, cudaGetErrorString(err));
 	}
 }
-
-void GPUConvEngine_1024::prepare(int sampleRate) {
-	
-	int temp_h_paddedSize = ((sampleRate * 6 / bs) + 1) * bs; 
-	h_numPartitions = temp_h_paddedSize / bs;
-	
-	dBlocks.x = (h_numPartitions);
-
-	threadsPerBlock.x = bs;
-	numBlocks.x = (temp_h_paddedSize + threadsPerBlock.x - 1) / threadsPerBlock.x;
+void GPUConvEngine_1024::prepare(float size) {
 	 
-	
-	cpu_sizes[0] = bs;
-	cpu_sizes[1] = h_convResSize;
-	cpu_sizes[2] = h_numPartitions - 1;
-	cudaMemcpyToSymbol(SIZES_1024, cpu_sizes, 3 * sizeof(int));
 
-	clear();
+	cudaStreamSynchronize(stream);
 
+	// Ensure proper padding
+	int temp_h_paddedSize = ((size + maxBufferSize - 1) / maxBufferSize) * maxBufferSize;
+	h_numPartitions = temp_h_paddedSize / maxBufferSize;
+
+	// Update dBlocks and other parameters
+	dBlocks.x = h_numPartitions;
+
+	// Update sizes array
+	cpu_sizes[2] = h_numPartitions;
+
+	// Copy updated sizes to device
+	 cudaMemcpyToSymbol(SIZES_1024, cpu_sizes, sizeof(int) * 3);
 }
+
 
 
 
@@ -188,7 +192,7 @@ void  GPUConvEngine_1024::process(const float* in, const float* in2, const float
 	
 	 
 	//copy content and transfer
-	int indexBs = h_index * bs;
+	int indexBs = h_index * maxBufferSize;
 	cudaMemcpyToSymbolAsync(INPUT_1024, in, bs_float, 0, cudaMemcpyHostToDevice, stream);
 	cudaMemcpyToSymbolAsync(INPUT2_1024,in2, bs_float, 0, cudaMemcpyHostToDevice, stream);
 	cudaMemcpyAsync(d_IR_paddedL + indexBs, in3, bs_float, cudaMemcpyHostToDevice, stream);
@@ -199,9 +203,8 @@ void  GPUConvEngine_1024::process(const float* in, const float* in2, const float
 	//launch the convolution Engine
 	launchEngine();
 
-
-
-	for (int i = 0; i < bs; i += 4) {
+	 
+	for (int i = 0; i < maxBufferSize; i += 4) {
 		// Load 4 floats from h_ConvolutionResL and h_OverlapL
 		__m128 resL = _mm_loadu_ps(&h_ConvolutionResL[i]);
 		__m128 overlapL = _mm_loadu_ps(&h_OverlapL[i]);
@@ -222,8 +225,8 @@ void  GPUConvEngine_1024::process(const float* in, const float* in2, const float
 	}
 
 	// Copy the last `bs` elements as overlap values for the next block
-	std::memcpy(h_OverlapL, &h_ConvolutionResL[bs - 1], bs_float);
-	std::memcpy(h_OverlapR, &h_ConvolutionResR[bs - 1], bs_float);
+	std::memcpy(h_OverlapL, &h_ConvolutionResL[maxBufferSize - 1], bs_float);
+	std::memcpy(h_OverlapR, &h_ConvolutionResR[maxBufferSize - 1], bs_float);
 
 
 
@@ -237,21 +240,38 @@ void  GPUConvEngine_1024::process(const float* in, const float* in2, const float
 	 
 }
 
+void GPUConvEngine_1024::launchEngine() {
+	// Kernel 1: shiftAndInsertKernel_1024
+	shiftAndInsertKernel_1024 << <dBlocks, dThreads, 0, stream >> > (d_TimeDomain_paddedL);
+	 
 
-void  GPUConvEngine_1024::launchEngine() {
+	// Kernel 2: shiftAndInsertKernel2_1024
+	shiftAndInsertKernel2_1024 << <dBlocks, dThreads, 0, stream >> > (d_TimeDomain_paddedR);
+	 
 
-	shiftAndInsertKernel_1024 << <numBlocks, threadsPerBlock,0,stream >> > (d_TimeDomain_paddedL);
-	shiftAndInsertKernel2_1024 << <numBlocks, threadsPerBlock, 0, stream >> > (d_TimeDomain_paddedR);
-	shared_partitioned_convolution_1024 << <dBlocks,dThreads , SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	// Kernel 3: shared_partitioned_convolution_1024 for Left channel
+	shared_partitioned_convolution_1024 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	 
+
+	// Kernel 4: shared_partitioned_convolution_1024 for Right channel
 	shared_partitioned_convolution_1024 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+ 
+
+	// Copy results back to host for debugging purposes
 	cudaMemcpyAsync(h_ConvolutionResL, d_ConvolutionResL, floatSizeRes, cudaMemcpyDeviceToHost, stream);
+	 
+
 	cudaMemcpyAsync(h_ConvolutionResR, d_ConvolutionResR, floatSizeRes, cudaMemcpyDeviceToHost, stream);
+	 
+
+	 
+	 
+
+	// Synchronize the stream to ensure all operations are complete
+	cudaStreamSynchronize(stream);
+	 
 	cudaMemsetAsync(d_ConvolutionResL, 0, floatSizeRes, stream);
 	cudaMemsetAsync(d_ConvolutionResR, 0, floatSizeRes, stream);
-
-	cudaStreamSynchronize(stream);
-	//update index
-
-	h_index = (h_index + 1) % (h_numPartitions);
-	
+	// Update the index for overlap handling
+	h_index = (h_index + 1) % h_numPartitions;
 }

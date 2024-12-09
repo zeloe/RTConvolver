@@ -16,11 +16,10 @@ class GPUConvEngine {
 public:
 	GPUConvEngine();
 	~GPUConvEngine();
-	 
+	virtual void prepare(float sampleRate);
 	void getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
 	 
 private:
-<<<<<<< Updated upstream
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
@@ -55,9 +54,7 @@ private:
 	cudaStream_t stream;
 	int threadsPerBlockZero = 0;
 	int numBlocksZero = 0;
-=======
-  
->>>>>>> Stashed changes
+
 };
 
 

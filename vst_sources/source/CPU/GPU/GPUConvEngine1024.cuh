@@ -17,13 +17,13 @@
 __global__ void shiftAndInsertKernel_1024(float* __restrict__ delayBuffer);
 __global__ void shiftAndInsertKernel2_1024(float* __restrict__ delayBuffer);
 __global__ void shared_partitioned_convolution_1024(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
-class GPUConvEngine_1024 : public GPUConvEngine {
+class GPUConvEngine_1024 {
 public:
 	GPUConvEngine_1024();
 	~GPUConvEngine_1024();
 	void  process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
 
-	void  prepare(int sampleRate);
+	void  prepare(float size);
 
 	void clear();
 
@@ -37,7 +37,7 @@ private:
 	
 	int sizeMax = 0;
 	const int maxBufferSize = 1024;
-	int bs = 0;
+	 
 	int bs_float = 0;
 	int h_numPartitions = 0;
 	int h_paddedSize = 0;
@@ -63,8 +63,6 @@ private:
 	dim3 numBlocks;
 	size_t SHMEM = 0;
 	cudaStream_t stream;
-	int threadsPerBlockZero = 0;
-	int numBlocksZero = 0;
 };
 
 
