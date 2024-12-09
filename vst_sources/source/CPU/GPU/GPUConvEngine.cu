@@ -1,5 +1,12 @@
 
 #include "GPUConvEngine.cuh"
+<<<<<<< HEAD
+  
+
+GPUConvEngine::GPUConvEngine() {
+  
+}
+=======
 // Define the constant memory array
 __constant__ int SIZES[2];
 __constant__ float INPUT[1024];
@@ -83,6 +90,7 @@ GPUConvEngine::GPUConvEngine() {
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
+>>>>>>> main
 
 	SHMEM = 2 * sizeof(float) * bs + floatSizeRes;
  
@@ -129,27 +137,11 @@ void GPUConvEngine::clear() {
 
 
 GPUConvEngine::~GPUConvEngine() {
-	cleanup();
-	// Free Stream 
-	cudaStreamDestroy(stream);
+	 
 }
 
 void GPUConvEngine::cleanup() {
-	
-	cudaFree(d_ConvolutionResL);
-	cudaFree(d_ConvolutionResR);
 	 
-	cudaFree(d_IR_paddedL);
-	cudaFree(d_IR_paddedR);
-	cudaFree(d_TimeDomain_paddedL);
-	cudaFree(d_TimeDomain_paddedR);
-
-	// Free CPU memory
-	free(h_ConvolutionResL);
-	free(h_ConvolutionResR);
-	free(h_OverlapL);
-	free(h_OverlapR);
-
  
 
 
@@ -163,6 +155,12 @@ void GPUConvEngine::checkCudaError(cudaError_t err, const char* errMsg) {
 	}
 }
 
+<<<<<<< HEAD
+void GPUConvEngine::prepare(float sampleRate) {
+
+	return;
+	 
+=======
 void GPUConvEngine::prepare(int maxBufferSize, int sampleRate) {
 
 	bs = maxBufferSize;
@@ -232,25 +230,26 @@ void  GPUConvEngine::process(const float* in, const float* in2, const float* in3
 	std::memcpy(h_OverlapL, &h_ConvolutionResL[bs -  1 ], bs_float);
  	std::memcpy(h_OverlapR, &h_ConvolutionResR[bs -  1 ], bs_float);
 
+>>>>>>> main
 }
 
 
 
 
 void  GPUConvEngine::launchEngine() {
-
-	shiftAndInsertKernel << <numBlocks, threadsPerBlock,0,stream >> > (d_TimeDomain_paddedL);
-	shiftAndInsertKernel2 << <numBlocks, threadsPerBlock, 0, stream >> > (d_TimeDomain_paddedR);
-	shared_partitioned_convolution << <dBlocks,dThreads , SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
-	shared_partitioned_convolution << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
-	cudaMemcpyAsync(h_ConvolutionResL, d_ConvolutionResL, floatSizeRes, cudaMemcpyDeviceToHost, stream);
-	cudaMemcpyAsync(h_ConvolutionResR, d_ConvolutionResR, floatSizeRes, cudaMemcpyDeviceToHost, stream);
-	cudaMemsetAsync(d_ConvolutionResL, 0, floatSizeRes, stream);
-	cudaMemsetAsync(d_ConvolutionResR, 0, floatSizeRes, stream);
-
-	cudaStreamSynchronize(stream);
-	//update index
-
-	h_index = (h_index + 1) % (h_numPartitions);
-	
+	return;
+	  
 }
+ 
+  
+
+
+
+
+
+void  GPUConvEngine::getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2)  {
+	return;
+}
+
+
+ 

@@ -2,7 +2,6 @@
 #include <JuceHeader.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "pluginparamers/PluginParameters.h"
-#include "GPU/GPUConvEngine.cuh"
 #include "DSP/ProcessorSwapper.h"
 #include "DSP/GainStaging.h"
 //==============================================================================
@@ -46,8 +45,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState treeState;
-    
+    juce::Identifier sizeParamID{ "SizeMenuIndex" }; // Identifier for your SizeMenu parameter
 
+    void getSize(float size);
   
     std::unique_ptr<ProcessorSwapper<float>>  swapper;
 private:

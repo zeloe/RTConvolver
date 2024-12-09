@@ -18,7 +18,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     
     swapper = std::make_unique<ProcessorSwapper<float>>();
     gain = std::make_unique<Gain>(treeState);
-
+    treeState.state.setProperty(sizeParamID, 0, nullptr); // Default value
+    // Fetch the initial value
 
 }
 
@@ -191,4 +192,9 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new AudioPluginAudioProcessor();
+}
+
+void AudioPluginAudioProcessor::getSize(float Size) {
+
+    swapper->prepareEngines(Size);
 }
