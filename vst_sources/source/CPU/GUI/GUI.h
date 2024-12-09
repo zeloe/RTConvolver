@@ -9,6 +9,7 @@
 #include "GUIDefines.h"
 #include "../pluginparamers/PluginParameters.h"
 #include "CSlider.h"
+#include "SizeMenu.h"
 class GUI : public juce::Component
 {
 public:
@@ -22,6 +23,7 @@ public:
     AudioPluginAudioProcessor& proc;
 private:
     std::unique_ptr<ZenSlider> VolumeKnob;
+    std::unique_ptr<SizeMenu> sizeMenu;
     juce::AudioProcessorValueTreeState::SliderAttachment  volumeAttach;
      
   
