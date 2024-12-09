@@ -20,12 +20,13 @@ public:
 	void getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
 	 
 private:
+	void clear();
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
 	
-	
-
+	int sizeMax = 0;
+	const int maxBufferSize = 1024;
 	int bs = 0;
 	int bs_float = 0;
 	int h_numPartitions = 0;

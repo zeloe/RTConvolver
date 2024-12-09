@@ -11,7 +11,7 @@ target_sources(${TARGET_NAME} PRIVATE ${CPU_SOURCES})
 
 # Compile CUDA source files into a static library
 add_library(CU_LIB STATIC ${CU_SOURCES})
-
+set_property(TARGET CU_LIB PROPERTY CUDA_ARCHITECTURES native)
  
 set_target_properties(CU_LIB PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 set_property(TARGET CU_LIB PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)

@@ -19,7 +19,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginParameter::createParam
     params.push_back (std::make_unique<juce::AudioParameterFloat> (GAIN,
                                                                    GAIN_NAME,
                                                                        0.0,
-                                                                       2.f,
+                                                                       1.f,
                                                                        0.5));
     
    
