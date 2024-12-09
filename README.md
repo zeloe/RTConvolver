@@ -18,7 +18,7 @@ You will need a working cuda compiler (NVCC).
 ## Known Issues
 Sometimes there is some latency. \
 Doesn't properly work inside juce audio plugin host. \
-You will need a buffersize between 256 - 1024. \
+Currently supported buffersizes are 512 and 1024. \
 Offline rendering doesn't work.
 ## What works
 See it in action [Video](https://youtu.be/UnypuxxIxOg) \
