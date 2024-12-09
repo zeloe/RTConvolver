@@ -17,7 +17,7 @@ public:
 	GPUConvEngine();
 	~GPUConvEngine();
 	virtual void prepare(float sampleRate);
-	void getPointers(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
+	void process(const float* in, const float* in2, const float* in3, const float* in4, float* out1, float* out2);
 	 
 private:
 	void clear();
