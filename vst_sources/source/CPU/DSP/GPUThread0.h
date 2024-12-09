@@ -28,6 +28,8 @@ public:
     virtual void reset() {
         
     }
+
+    virtual void setSize(float Size) {};
    
     virtual void push(juce::AudioBuffer<float>& inputBuffer, juce::AudioBuffer<float>& outputBuffer) {
         return;

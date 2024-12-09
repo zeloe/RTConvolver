@@ -21,11 +21,17 @@ public:
          stopThread(2000); // Gracefully stop the thread after waiting for 2 seconds.
     }
     virtual void start() override {
-        activeEngine->clear();
+     
         startThread(Priority::highest);
     }
 
+    virtual void setSize(float Size) override {
+        activeEngine->prepare(Size);
+    }
+
     virtual void reset() override {
+         activeEngine->clear();
+         processingInBackground.store(false, std::memory_order_release);
          stopThread(200);
     }
      void prepare() 
@@ -44,18 +50,17 @@ public:
         bufferToProcess.copyFrom(1, 0, inputBuffer, 1, 0, bs); // Right channel
         bufferToProcess.copyFrom(2, 0, inputBuffer, 2, 0, bs); // SideChain Left channel
         bufferToProcess.copyFrom(3, 0, inputBuffer, 3, 0, bs); // SideChain Right channel
-
-        bufferToProcess.applyGain(0.25);
+         
 
         // Signal background thread to start processing
         processingInBackground.store(true, std::memory_order_release);
         while (processingInBackground.load(std::memory_order_acquire)) {}
+        
         // Wait for the processing to complete before copying output
-        outputBuffer.copyFrom(0, 0, bufferToProcess2, 0, 0, outputBuffer.getNumSamples());
-        outputBuffer.copyFrom(1, 0, bufferToProcess2, 1, 0, outputBuffer.getNumSamples());
+        outputBuffer.copyFrom(0, 0, bufferToProcess, 0, 0, outputBuffer.getNumSamples());
+        outputBuffer.copyFrom(1, 0, bufferToProcess, 1, 0, outputBuffer.getNumSamples());
 
-        // Scale channels 1 and 2
-        outputBuffer.applyGain(0.25);
+        
 
 
 
@@ -101,13 +106,13 @@ private:
         const float* rightChannelB = bufferToProcess.getReadPointer(3);
 
         // Process using the active engine
+        float* outA = bufferToProcess.getWritePointer(0);
+        float* outB = bufferToProcess.getWritePointer(1);
+         
+         activeEngine->process(leftChannelA, rightChannelA, leftChannelB, rightChannelB, outA, outB);
 
-            // Direct call to the stored function pointer for processing
-        activeEngine->process(leftChannelA, rightChannelA, leftChannelB, rightChannelB, bufferToProcess.getWritePointer(0), bufferToProcess.getWritePointer(1));
 
-
-        bufferToProcess2.copyFrom(0, 0, bufferToProcess, 0, 0, bs);
-        bufferToProcess2.copyFrom(1, 0, bufferToProcess, 1, 0, bs);
+        
     }
 
 

@@ -29,6 +29,10 @@ public:
         activeEngine->clear();
         stopThread(200);
     }
+
+    virtual void setSize(float Size) override {
+        activeEngine->prepare(Size);
+    }
     void prepare()
     {
         processingInBackground.store(false, std::memory_order_release);
