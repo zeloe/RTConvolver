@@ -45,8 +45,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState treeState;
-    
+    juce::Identifier sizeParamID{ "SizeMenuIndex" }; // Identifier for your SizeMenu parameter
 
+    void getSize(float size);
   
     std::unique_ptr<ProcessorSwapper<float>>  swapper;
 private:
