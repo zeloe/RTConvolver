@@ -30,4 +30,4 @@ NVIDIA GTX 1660 TI
 Add proper kernels using maximum number of threads for each buffersize.
 
 ## Download (early build windows)
-[Download](https://github.com/zeloe/RTConvolver/releases/tag/v.0.0.1)
+[Download](https://github.com/zeloe/RTConvolver/releases/tag/v.0.0.2)
