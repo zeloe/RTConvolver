@@ -22,7 +22,7 @@ Doesn't properly work inside juce audio plugin host. \
 Currently supported buffersizes are 128 , 256 , 512 , 1024. \
 Offline rendering doesn't work.
 ## What works
-See it in action [Video](https://youtu.be/UnypuxxIxOg) \
+See it in action [Video](https://youtu.be/HU-1DHLxr8M) \
 Works in Reaper and Ableton 12.
 ## Hardware
 NVIDIA GTX 1660 TI
