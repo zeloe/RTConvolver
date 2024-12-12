@@ -17,6 +17,7 @@
 __global__ void shiftAndInsertKernel_1024(float* __restrict__ delayBuffer);
 __global__ void shiftAndInsertKernel2_1024(float* __restrict__ delayBuffer);
 __global__ void shared_partitioned_convolution_1024(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+ 
 class GPUConvEngine_1024 {
 public:
 	GPUConvEngine_1024();
@@ -28,7 +29,8 @@ public:
 	void clear();
 
 private:
- 
+	dim3 d_Threads;
+	dim3 d_Blocks;
  
 	
 	void cleanup();
@@ -59,9 +61,7 @@ private:
 	int* cpu_sizes = nullptr;
 	dim3 dThreads;
 	dim3 dBlocks;
-	dim3 threadsPerBlock;
-	dim3 numBlocks;
-	size_t SHMEM = 0;
+	  
 	cudaStream_t stream;
 };
 

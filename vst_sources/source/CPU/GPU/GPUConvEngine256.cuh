@@ -13,6 +13,9 @@
 #include <cstring>
 
 __global__ void shared_partitioned_convolution_256(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution_256_2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution_256_3(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+__global__ void shared_partitioned_convolution_256_4(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
 __global__ void  shiftAndInsertKernel_256(float* __restrict__ delayBuffer);
 __global__ void  shiftAndInsertKernel2_256(float* __restrict__ delayBuffer);
  
@@ -30,9 +33,10 @@ private:
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
 	int* cpu_sizes = nullptr;
+	int* cpu_offsets = nullptr;
 	int sizeMax = 0;
 	const int maxBufferSize = 256;
-	 
+	const int numKernels = 4;
 	int bs_float = 0;
 	int h_numPartitions = 0;
 	int h_paddedSize = 0;
@@ -54,12 +58,12 @@ private:
 	   
 	dim3 dThreads;
 	dim3 dBlocks;
-	dim3 threadsPerBlock;
-	dim3 numBlocks;
-	size_t SHMEM = 0;
+	 
+	 
+	dim3 convBlocks;
+	 
 	cudaStream_t stream;
-	int threadsPerBlockZero = 0;
-	int numBlocksZero = 0;
+	 
 };
 
 

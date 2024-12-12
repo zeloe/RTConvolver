@@ -1,10 +1,10 @@
 
 #include "GPUConvEngine1024.cuh"
 // Define the constant memory array
- __constant__ int SIZES_1024[3];
- __constant__ float INPUT_1024[1024];
- __constant__ float INPUT2_1024[1024];
- 
+__constant__ int SIZES_1024[3];
+__constant__ float INPUT_1024[1024];
+__constant__ float INPUT2_1024[1024];
+__shared__ float partArray_1024[1024 * 4];
 __global__ void   shiftAndInsertKernel_1024(float* __restrict__ delayBuffer) {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	// Insert new elements at the beginning of the delay buffer
@@ -12,7 +12,7 @@ __global__ void   shiftAndInsertKernel_1024(float* __restrict__ delayBuffer) {
 		delayBuffer[tid] = INPUT_1024[tid];
 	}
 
-	delayBuffer[tid + SIZES_1024[0]] = delayBuffer[tid];
+	delayBuffer[tid + SIZES_1024[0]] = delayBuffer[tid]; 
 }
 
 
@@ -28,16 +28,25 @@ __global__ void   shiftAndInsertKernel2_1024(float* __restrict__ delayBuffer) {
 
 }
 
+
+
+
+
+
+
+
+
+ 
 __global__ void  shared_partitioned_convolution_1024(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
 	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
-	const unsigned int partition_idx = blockIdx.x;
+ 
 	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
+	
 
 	// Declare pointers to the shared memory partitions
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES_1024[0]];
-	float* tempResult = &partArray[SIZES_1024[0] * 2];
+	float* arr1 = &partArray_1024[0];
+	float* arr2 = &partArray_1024[SIZES_1024[0]];
+	float* tempResult = &partArray_1024[SIZES_1024[0] * 2];
 	// Load data into shared memory
 	tempResult[copy_idx] = 0.f;
 	tempResult[SIZES_1024[0] + copy_idx] = 0.f;
@@ -71,21 +80,24 @@ __global__ void  shared_partitioned_convolution_1024(float* __restrict__ Result,
 
 GPUConvEngine_1024::GPUConvEngine_1024() {
 	cudaStreamCreate(&stream);
-	 
+ 
 	dThreads.x = maxBufferSize;
-	sizeMax = (((48000 * 6) / maxBufferSize) + 1) *  maxBufferSize;
-	h_convResSize = maxBufferSize * 2;
+	h_convResSize = maxBufferSize * 2 - 1;
+	sizeMax = ((48000 * 6 / maxBufferSize) + 1) * maxBufferSize;
+	 
+	
+	
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
 
-	SHMEM = 4 * sizeof(float) * maxBufferSize;
+ 
  
 	bs_float = maxBufferSize * sizeof(float);
 	 
 
-	h_ConvolutionResL = (float*)calloc(h_convResSize, sizeof(float));
-	h_ConvolutionResR = (float*)calloc(h_convResSize, sizeof(float));
+	h_ConvolutionResL = (float*)calloc(h_convResSize +1, sizeof(float));
+	h_ConvolutionResR = (float*)calloc(h_convResSize + 1, sizeof(float));
 	h_OverlapL = (float*)calloc(maxBufferSize, sizeof(float));
 	h_OverlapR = (float*)calloc(maxBufferSize, sizeof(float));
 	h_index = 0;
@@ -95,6 +107,7 @@ GPUConvEngine_1024::GPUConvEngine_1024() {
 
 	h_numPartitions = sizeMax / maxBufferSize;
 	h_paddedSize = h_numPartitions * maxBufferSize;
+ 
 	dBlocks.x = (h_numPartitions);
 	cpu_sizes = (int*)calloc(3, sizeof(int));
 	cpu_sizes[0] = maxBufferSize;
@@ -112,7 +125,8 @@ GPUConvEngine_1024::GPUConvEngine_1024() {
 	clear(); 
 	
 }
-void GPUConvEngine_1024::clear() { int floatSizeResMax = 2 * maxBufferSize * sizeof(float);
+void GPUConvEngine_1024::clear() { 
+	int floatSizeResMax = 2 * maxBufferSize * sizeof(float);
 	(cudaMemset(d_ConvolutionResL, 0, floatSizeRes));
 	(cudaMemset(d_ConvolutionResR, 0, floatSizeRes));
 	(cudaMemset(INPUT_1024, 0, maxBufferSize * sizeof(float)));
@@ -170,14 +184,13 @@ void GPUConvEngine_1024::prepare(float size) {
 	cudaStreamSynchronize(stream);
 
 	// Ensure proper padding
-	int temp_h_paddedSize = ((size + maxBufferSize - 1) / maxBufferSize) * maxBufferSize;
-	h_numPartitions = temp_h_paddedSize / maxBufferSize;
-
+	int temp_h_paddedSize = ((size / maxBufferSize) + 1) * maxBufferSize;
+	 
 	// Update dBlocks and other parameters
-	dBlocks.x = h_numPartitions;
+	dBlocks.x = temp_h_paddedSize / maxBufferSize;
 
 	// Update sizes array
-	cpu_sizes[2] = h_numPartitions;
+	cpu_sizes[2] = temp_h_paddedSize;
 
 	// Copy updated sizes to device
 	 cudaMemcpyToSymbol(SIZES_1024, cpu_sizes, sizeof(int) * 3);
@@ -250,12 +263,12 @@ void GPUConvEngine_1024::launchEngine() {
 	 
 
 	// Kernel 3: shared_partitioned_convolution_1024 for Left channel
-	shared_partitioned_convolution_1024 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
 	 
+  	shared_partitioned_convolution_1024<<<dBlocks, dThreads, 0, stream >>> (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
 
 	// Kernel 4: shared_partitioned_convolution_1024 for Right channel
-	shared_partitioned_convolution_1024 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
- 
+	 
+	shared_partitioned_convolution_1024 << <dBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
 
 	// Copy results back to host for debugging purposes
 	cudaMemcpyAsync(h_ConvolutionResL, d_ConvolutionResL, floatSizeRes, cudaMemcpyDeviceToHost, stream);

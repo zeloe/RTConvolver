@@ -63,7 +63,7 @@ public:
  
        
         m_sampleRate = sampleRate;
-        cur_bs = samplesPerBlock;
+          cur_bs = samplesPerBlock;
 
         if (cur_bs != bs) {
              
@@ -200,20 +200,19 @@ private:
         activeThread->reset();
 
         switch (blockSize) {
-        /*
+  
         case 128: {
             activeThread = thread_128.get();
 
             break;
         }
-
-
+      
         case 256: {
              activeThread = thread_256.get();
              
             break;
         }
-        */
+
         case 512: {
             activeThread = thread_512.get();
           
