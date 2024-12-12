@@ -48,6 +48,9 @@ public:
 		float* bufferL = bufferToProcess.getWritePointer(0);
 		float* bufferR = bufferToProcess.getWritePointer(1);
 
+
+		const float* bufferReadL = bufferToProcess.getReadPointer(0);
+		const float* bufferReadR = bufferToProcess.getReadPointer(1);
 		for (int sample = 0; sample < bs; ++sample) {
 			new_Gain = fac + pole * 0.99;
 			bufferL[sample] *= new_Gain;
@@ -56,7 +59,12 @@ public:
 		}
 		
 
-
+		for (int sample = 0; sample < bs; ++sample) {
+				float outL = tanh(bufferReadL[sample]); 
+				float outR = tanh(bufferReadR[sample]);
+				bufferL[sample] = outL;
+				bufferR[sample] = outR;
+		}
 
 
 

@@ -16,6 +16,7 @@
 #include "GPUConvEngine.cuh" 
 
 extern __global__ void shared_partitioned_convolution_512(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
+extern __global__ void shared_partitioned_convolution_512_2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp);
 extern __global__ void  shiftAndInsertKernel_512(float* __restrict__ delayBuffer);
 extern __global__ void  shiftAndInsertKernel2_512(float* __restrict__ delayBuffer);
 class GPUConvEngine_512 {
@@ -33,6 +34,7 @@ private:
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
 	int* cpu_sizes = nullptr;
+	const int numKernels = 2;
 	int sizeMax = 0;
 	 
 	const int maxBufferSize = 512;
@@ -58,8 +60,8 @@ private:
 	   
 	dim3 dThreads;
 	dim3 dBlocks;
-	dim3 threadsPerBlock;
-	dim3 numBlocks;
+	dim3 convThreads;
+	dim3 convBlocks;
 	size_t SHMEM = 0;
 	cudaStream_t stream;
 	int threadsPerBlockZero = 0;

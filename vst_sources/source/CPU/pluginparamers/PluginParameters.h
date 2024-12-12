@@ -14,13 +14,13 @@ public:
     ~PluginParameter();
     
     inline static const juce::String
-        GAIN = "param_Gain",
-        SIZE = "param_Size";
+        GAIN = "param_Gain";
+      
      
     
     inline static const juce::String
-        GAIN_NAME = "Gain",
-        SIZE_NAME = "Size";
+        GAIN_NAME = "Gain";
+      
     
     
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

@@ -1,18 +1,322 @@
 
 #include "GPUConvEngine128.cuh"
 // Define the constant memory array
-__constant__ int SIZES_128[2];
+__constant__ int SIZES_128[3];
 __constant__ float INPUT_128[128];
 __constant__ float INPUT2_128[128];
+
+__shared__ float partArray_128_1[128 * 4];
+__shared__ float partArray_128_2[128 * 4];
+__shared__ float partArray_128_3[128 * 4];
+__shared__ float partArray_128_4[128 * 4];
+__shared__ float partArray_128_5[128 * 4];
+__shared__ float partArray_128_6[128 * 4];
+__shared__ float partArray_128_7[128 * 4];
+__shared__ float partArray_128_8[128 * 4];
+__constant__ int OFFSETS_128[7];
+
+__global__ void shared_partitioned_convolution_128_8(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_8[0];
+	float* arr2 = &partArray_128_8[SIZES_128[0]];
+	float* tempResult = &partArray_128_8[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[6]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[6]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+__global__ void shared_partitioned_convolution_128_7(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_7[0];
+	float* arr2 = &partArray_128_7[SIZES_128[0]];
+	float* tempResult = &partArray_128_7[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[5]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[5]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+
+
+
+
+
+__global__ void shared_partitioned_convolution_128_6(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_6[0];
+	float* arr2 = &partArray_128_6[SIZES_128[0]];
+	float* tempResult = &partArray_128_6[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[4]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[4]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+__global__ void shared_partitioned_convolution_128_5(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_5[0];
+	float* arr2 = &partArray_128_5[SIZES_128[0]];
+	float* tempResult = &partArray_128_5[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[3]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[3]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+
+
+__global__ void shared_partitioned_convolution_128_4(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_4[0];
+	float* arr2 = &partArray_128_4[SIZES_128[0]];
+	float* tempResult = &partArray_128_4[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[2]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[2]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+
+
+__global__ void shared_partitioned_convolution_128_3(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_3[0];
+	float* arr2 = &partArray_128_3[SIZES_128[0]];
+	float* tempResult = &partArray_128_3[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[1]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[1]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+
+
+
+__global__ void shared_partitioned_convolution_128_2(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
+	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const unsigned int copy_idx = threadIdx.x;
+
+
+	// Declare pointers to the shared memory partitions
+	float* arr1 = &partArray_128_2[0];
+	float* arr2 = &partArray_128_2[SIZES_128[0]];
+	float* tempResult = &partArray_128_2[SIZES_128[0] * 2];
+	// Load data into shared memory
+	tempResult[copy_idx] = 0.f;
+	tempResult[SIZES_128[0] + copy_idx] = 0.f;
+	arr1[copy_idx] = Dry[thread_idx + OFFSETS_128[0]];
+	arr2[copy_idx] = Imp[thread_idx + OFFSETS_128[0]];
+
+	__syncthreads();
+
+	// Shared memory to accumulate results before writing them to global memory
+	// Convolution operation (reduction into shared memory)
+	for (int i = 0; i < SIZES_128[0]; i++) {
+		int inv = (i + copy_idx) % SIZES_128[0];
+		tempResult[i + inv] += arr1[i] * arr2[inv];
+	}
+
+	__syncthreads();  // Ensure all threads in the block have finished processing
+
+
+	// Write the accumulated result to global memory (only for the first thread)
+	if (copy_idx == 0) {
+		// Write the first part of the result (up to SIZES[0] * 2 - 1)
+		for (int i = 0; i < SIZES_128[1]; i++) {
+			atomicAdd(&Result[i], tempResult[i]);
+		}
+
+
+	}
+
+}
+
+
+
 __global__ void shared_partitioned_convolution_128(float* __restrict__ Result, const float* __restrict__ Dry, const float* __restrict__ Imp) {
 	const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 	const unsigned int copy_idx = threadIdx.x;
-	extern __shared__ float partArray[];
+ 
 	
 	// Declare pointers to the shared memory partitions
-	float* arr1 = &partArray[0];
-	float* arr2 = &partArray[SIZES_128[0]];
-	float* tempResult = &partArray[SIZES_128[0] * 2];
+	float* arr1 = &partArray_128_1[0];
+	float* arr2 = &partArray_128_1[SIZES_128[0]];
+	float* tempResult = &partArray_128_1[SIZES_128[0] * 2];
 	// Load data into shared memory
 	tempResult[copy_idx] = 0.f;
 	tempResult[SIZES_128[0] + copy_idx] = 0.f;
@@ -71,15 +375,14 @@ __global__ void  shiftAndInsertKernel2_128(float* __restrict__ delayBuffer) {
 
 GPUConvEngine_128::GPUConvEngine_128() {
 	cudaStreamCreate(&stream);
-
+	dThreads.x = maxBufferSize;
 	sizeMax = (((48000 * 6) / maxBufferSize) + 1) * maxBufferSize;
 	h_convResSize = maxBufferSize * 2;
 	floatSizeRes = h_convResSize * sizeof(float);
 	(cudaMalloc((void**)&d_ConvolutionResL, floatSizeRes));
 	(cudaMalloc((void**)&d_ConvolutionResR, floatSizeRes));
 	h_numPartitions = sizeMax / maxBufferSize;
-	SHMEM = 4 * sizeof(float) * maxBufferSize;
-
+ 
 	bs_float = maxBufferSize * sizeof(float);
 
 
@@ -92,6 +395,7 @@ GPUConvEngine_128::GPUConvEngine_128() {
 	h_index = 0;
 
 	cpu_sizes = (int*)calloc(3, sizeof(int));
+	cpu_offsets = (int*)calloc(7, sizeof(int));
 	cpu_sizes[0] = maxBufferSize;
 	cpu_sizes[1] = h_convResSize;
 	cpu_sizes[2] = h_numPartitions;
@@ -100,7 +404,7 @@ GPUConvEngine_128::GPUConvEngine_128() {
 
 
 	//check this
-	h_paddedSize = h_numPartitions * maxBufferSize * 4;
+	h_paddedSize = h_numPartitions * maxBufferSize;
 	 
 
 	(cudaMalloc((void**)&d_IR_paddedL, h_paddedSize * sizeof(float)));
@@ -147,7 +451,7 @@ void GPUConvEngine_128::cleanup() {
 	free(h_OverlapL);
 	free(h_OverlapR);
 	free(cpu_sizes);
- 
+	free(cpu_offsets);
 
 
 
@@ -161,12 +465,24 @@ void GPUConvEngine_128::checkCudaError(cudaError_t err, const char* errMsg) {
 }
 
 void GPUConvEngine_128::prepare(float size) {
+
+
 	cudaStreamSynchronize(stream);
-
 	// Ensure proper padding
-	int temp_h_paddedSize = (((size) / maxBufferSize) + 1) * maxBufferSize;
-	h_numPartitions = temp_h_paddedSize / maxBufferSize;
+	int temp_h_paddedSize = (((size) / maxBufferSize) / numKernels + 1) * maxBufferSize * numKernels;
+	int temp_numPartitions = temp_h_paddedSize / maxBufferSize / numKernels;
+	int offset = temp_h_paddedSize / numKernels;
+	cpu_offsets[0] = offset;
+	cpu_offsets[1] = offset * 2;
+	cpu_offsets[2] = offset * 3;
+	cpu_offsets[3] = offset * 4;
+	cpu_offsets[4] = offset * 5;
+	cpu_offsets[5] = offset * 6;
+	cpu_offsets[6] = offset * 7;
+	cudaMemcpyToSymbol(OFFSETS_128, cpu_offsets, sizeof(int) * 7);
+ 	convBlocks.x = temp_numPartitions;
 
+	h_numPartitions = (((size) / maxBufferSize) + 1);
 	// Update dBlocks and other parameters
 	dBlocks.x = h_numPartitions;
 
@@ -230,8 +546,22 @@ void  GPUConvEngine_128::launchEngine() {
 
 	shiftAndInsertKernel_128 << <dBlocks, dThreads,0,stream >> > (d_TimeDomain_paddedL);
 	shiftAndInsertKernel2_128 << <dBlocks, dThreads, 0, stream >> > (d_TimeDomain_paddedR);
-	shared_partitioned_convolution_128 << <dBlocks,dThreads , SHMEM, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
-	shared_partitioned_convolution_128 << <dBlocks, dThreads, SHMEM, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128 << <convBlocks,dThreads , 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_2 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_2 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_3 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_3 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_4 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_4 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_5 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_5 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_6 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_6 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_7 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_7 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
+	shared_partitioned_convolution_128_8 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResL, d_TimeDomain_paddedL, d_IR_paddedL);
+	shared_partitioned_convolution_128_8 << <convBlocks, dThreads, 0, stream >> > (d_ConvolutionResR, d_TimeDomain_paddedR, d_IR_paddedR);
 	cudaMemcpyAsync(h_ConvolutionResL, d_ConvolutionResL, floatSizeRes, cudaMemcpyDeviceToHost, stream);
 	cudaMemcpyAsync(h_ConvolutionResR, d_ConvolutionResR, floatSizeRes, cudaMemcpyDeviceToHost, stream);
 	cudaMemsetAsync(d_ConvolutionResL, 0, floatSizeRes, stream);
