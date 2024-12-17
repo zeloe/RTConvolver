@@ -22,7 +22,7 @@ public:
     }
     virtual void start() override {
      
-        startThread(Priority::highest);
+        startThread(Priority::normal);
     }
 
     virtual void setSize(float Size) override {
@@ -32,7 +32,7 @@ public:
     virtual void reset() override {
          activeEngine->clear();
          processingInBackground.store(false, std::memory_order_release);
-         stopThread(200);
+         stopThread(10);
     }
      void prepare() 
     {
@@ -53,12 +53,13 @@ public:
          
 
         // Signal background thread to start processing
-        processingInBackground.store(true, std::memory_order_release);
-        while (processingInBackground.load(std::memory_order_acquire)) {}
-        
+       processingInBackground.store(true, std::memory_order_release);
+     //  processConvolution();
+       while (processingInBackground.load(std::memory_order_acquire)) {}
+     
         // Wait for the processing to complete before copying output
-        outputBuffer.copyFrom(0, 0, bufferToProcess, 0, 0, outputBuffer.getNumSamples());
-        outputBuffer.copyFrom(1, 0, bufferToProcess, 1, 0, outputBuffer.getNumSamples());
+        outputBuffer.copyFrom(0, 0, bufferToProcess2, 0, 0, outputBuffer.getNumSamples());
+        outputBuffer.copyFrom(1, 0, bufferToProcess2, 1, 0, outputBuffer.getNumSamples());
 
         
 
@@ -106,8 +107,8 @@ private:
         const float* rightChannelB = bufferToProcess.getReadPointer(3);
 
         // Process using the active engine
-        float* outA = bufferToProcess.getWritePointer(0);
-        float* outB = bufferToProcess.getWritePointer(1);
+        float* outA = bufferToProcess2.getWritePointer(0);
+        float* outB = bufferToProcess2.getWritePointer(1);
          
          activeEngine->process(leftChannelA, rightChannelA, leftChannelB, rightChannelB, outA, outB);
 

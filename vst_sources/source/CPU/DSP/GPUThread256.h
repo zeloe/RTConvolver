@@ -22,7 +22,7 @@ public:
     }
     virtual void start() override {
         activeEngine->clear();
-        startThread(Priority::highest);
+        startThread(Priority::normal);
     }
 
     virtual void reset() override {
