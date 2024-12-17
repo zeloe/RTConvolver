@@ -7,8 +7,8 @@ public juce::ComboBox::Listener,
 public juce::ValueTree::Listener
 {
 public:
-    SizeMenu(juce::ValueTree & state, const juce::Identifier & parameterID, AudioPluginAudioProcessor& processor)
-        : stateTree(state), paramID(parameterID), proc(processor)
+    SizeMenu(juce::ValueTree & state, const juce::Identifier & parameterID,const juce::Identifier & convolutionsizeId, AudioPluginAudioProcessor& processor)
+        : stateTree(state), paramID(parameterID),sizeID(convolutionsizeId), proc(processor)
     {
         // Initialize combo box with items
         int counter = 1;
@@ -51,10 +51,11 @@ public:
         {
             auto selectedId = sizesBox.getSelectedId();
             stateTree.setProperty(paramID, selectedId - 1, nullptr); // Update the state
+           
             // Retrieve the text value of the currently selected item
             auto selectedText = sizesBox.getText();
             float resSize = selectedText.getFloatValue();
-          
+            stateTree.setProperty(sizeID, resSize, nullptr); // Update the state
             proc.getSize(resSize);
         }
     }
@@ -72,6 +73,7 @@ public:
 private:
     juce::ValueTree & stateTree;
     juce::Identifier paramID;
+    juce::Identifier sizeID;
     juce::ComboBox sizesBox;
     std::unique_ptr<ZenLook> lnf;
     AudioPluginAudioProcessor& proc;
