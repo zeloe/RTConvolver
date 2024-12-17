@@ -4,6 +4,7 @@
 #include "pluginparamers/PluginParameters.h"
 #include "DSP/ProcessorSwapper.h"
 #include "DSP/GainStaging.h"
+#include "DSP/Limiter.h"
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
 {
@@ -45,7 +46,8 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState treeState;
-    juce::Identifier sizeParamID{ "SizeMenuIndex" }; // Identifier for your SizeMenu parameter
+    juce::Identifier sizeIndexID{ "SizeMenuIndex" }; // Identifier for SizeMenu parameter
+    juce::Identifier sizeParamID{ "Size" }; // Identifier for 
 
     void getSize(float size);
   
@@ -56,6 +58,8 @@ private:
     juce::AudioBuffer<float> sliceBuf;
     int maxBs;
     int totalSize = 0;
+    std::unique_ptr<Limiter> limiterL;
+    std::unique_ptr<Limiter> limiterR;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

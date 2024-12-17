@@ -18,8 +18,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     
     swapper = std::make_unique<ProcessorSwapper<float>>();
     gain = std::make_unique<Gain>(treeState);
-    treeState.state.setProperty(sizeParamID, 0, nullptr); // Default value
-    // Fetch the initial value
+    limiterL = std::make_unique<Limiter>();
+    limiterR = std::make_unique<Limiter>();
 
 }
 
@@ -100,11 +100,13 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     
     gain->prepare();
     swapper->prepare(samplesPerBlock, sampleRate);
-    
+    float size = treeState.state.getProperty(sizeParamID, 0.5f);
+    swapper->prepareEngines(size);
    
     sliceBuf.setSize(4,samplesPerBlock);
     sliceBuf.clear();
-   
+    limiterL->prepare(sampleRate);
+    limiterR->prepare(sampleRate);
 
     maxBs = samplesPerBlock;
 }
@@ -149,12 +151,18 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     sliceBuf.copyFrom(3, 0, sideChainBuffer, 1, 0, bs);
     auto outBus = getBus(false, 0);
     auto outBuffer = outBus->getBusBuffer(buffer);
-    swapper->push(sliceBuf, outBuffer);
+    swapper->push(sliceBuf, sliceBuf); 
      
 
-    gain->process(outBuffer);
+    gain->process(sliceBuf);
+    sliceBuf.applyGain(0.5f);
+    limiterL->process(sliceBuf.getReadPointer(0), sliceBuf.getWritePointer(0), maxBs);
+    limiterR->process(sliceBuf.getReadPointer(1), sliceBuf.getWritePointer(1), maxBs);
+    outBuffer.copyFrom(0, 0, sliceBuf, 0, 0, bs);
+    outBuffer.copyFrom(1, 0, sliceBuf, 1, 0, bs);
 
-  
+
+
    
 }
 
