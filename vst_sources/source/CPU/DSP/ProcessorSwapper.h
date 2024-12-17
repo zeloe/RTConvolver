@@ -16,7 +16,7 @@
 #include "../GPU/GPUConvEngine.cuh"
 #include <atomic>
 #include <variant>  // For variant
-
+ 
 template<typename T>
 class ProcessorSwapper 
 {
@@ -48,7 +48,7 @@ public:
         activeThread = thread_0.get();
         activeThread->start();
         cur_size = 0;
- 
+  
         
        
  
@@ -85,8 +85,9 @@ public:
        
        
         activeThread->push(inputBuffer, outputBuffer);
-     //   outputBuffer.applyGain(0.015f);
-        normalizeAudioBuffer(outputBuffer);
+      
+        outputBuffer.applyGain(0,0, outputBuffer.getNumSamples(), scaleFactor);
+        outputBuffer.applyGain(1, 0, outputBuffer.getNumSamples(), scaleFactor);
  
  
       
@@ -97,6 +98,7 @@ public:
         cur_size = m_sampleRate * size;
         if (cur_size != m_size) {
             activeThread->reset();
+            scaleFactors(size);
             // Call prepare for each engine explicitly
             thread_128->setSize(cur_size);
             thread_256->setSize(cur_size);
@@ -158,6 +160,9 @@ private:
         pole = currentGain;
     }
 
+
+   
+
     float poles[2] = { 0 };
     float new_Gain = 0; 
     int bs = 0; // Number of samples per block
@@ -186,12 +191,32 @@ private:
     std::unique_ptr<GPUThread_1024> thread_1024;
     // Active engine instance pointer for the selected engine
     GPUThread_0* activeThread = nullptr;
-    
+    float scaleFactor = 0.0f;
 
        
 
  
- 
+    void scaleFactors(float size) {
+        if (size == 0.5f) {
+            scaleFactor = 0.55f;
+        }
+        else if (size == 1.0f) {
+            scaleFactor = 0.45f;
+        }
+        else if (size == 2.0f) {
+            scaleFactor = 0.35f;
+        }
+        else if (size == 3.0f) {
+            scaleFactor = 0.25f;
+        }
+        else if (size == 4.0f) {
+            scaleFactor = 0.15f;
+        }
+        else {
+            scaleFactor = 0.0f;
+        }
+    }
+
 
     
 
