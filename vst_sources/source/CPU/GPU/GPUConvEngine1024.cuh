@@ -36,7 +36,7 @@ private:
 	void cleanup();
 	void   launchEngine();
 	void checkCudaError(cudaError_t err, const char* errMsg);
-	
+	size_t shmem = 0;
 	int sizeMax = 0;
 	const int maxBufferSize = 1024;
 	 
@@ -62,7 +62,7 @@ private:
 	dim3 dThreads;
 	dim3 dBlocks;
 	  
-	cudaStream_t stream;
+	cudaStream_t stream1,stream2,stream3,stream4;
 };
 
 
