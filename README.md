@@ -1,20 +1,47 @@
 # RTConvolver
-A realtime convolution VST3.
-## How it works
-
-![SignalFlow](https://github.com/user-attachments/assets/4eb5a563-39f0-47b4-afc2-9028b1854ef8)
-
-All heavylifting is done on GPU. \
-Main inputs(1 & 2) are convolved with side chain inputs (3 & 4)  and will determine 2 outputs. \
-There is a menu where you can select convolution size. From 0.5 Seconds to 4 Seconds. \
-The bigger the size the louder it will be. 
-## How to build
-This project is based on cmake.
-You will need a working cuda compiler (NVCC).
+A realtime GPU powered convolution VST3. 
+##
+### Setup in DAW
+In a DAW of your  choice you need to setup a track with 4 channels. \
+You should then send on channel 1 & 2 a stereo signal and on channel 3 & 4 a different stereo signal.
+### How to build
+You will need a working CUDA compiler and cmake. 
  ```shell
   git clone https://github.com/zeloe/RTConvolver.git
   cmake . -B build -G "Visual Studio 17 2022"
 ```
+### Processing
+At each call of process block 4 blocks of audio get into plugin. Then each of these audio blocks is on CPU. These audio blocks are then moved on GPU. 
+On GPU time a domain delay line is implemented for  each block 1 and 2. By following this logic. 
+```mermaid 
+graph LR
+First;
+```
+```mermaid 
+graph LR
+Second-->First;
+```
+Another different time delay line is implemented on 3 and 4.  By following this logic.
+```mermaid 
+graph LR
+First;
+```
+```mermaid 
+graph LR
+First-->Second;
+```
+Then linear Convolution (without FFT) is done.  Convolving block 1 with block 3 will produce left channel. Convolving block 2 with block 4 will produce right channel. 
+These two blocks are then moved back to CPU and you can hear results. 
+Using this method you can change e.g. your impulse response in realtime and use other effects on it. 
+##
+### Convolution Sizes
+There is a menu where you can choose how big your convolution size is in seconds. 
+- 0.5, 1.0, 2.0, 3.0, 4.0
+##
+### Volume Knob
+This knob is used to scale output volume.
+##
+### 
 
 ## Known Issues
 Sometimes there is some latency. \
