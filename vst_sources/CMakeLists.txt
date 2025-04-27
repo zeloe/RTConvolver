@@ -6,7 +6,7 @@ file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS CPU_sources/*.cpp CPU_sources/*.
 target_sources(${TARGET_NAME} PRIVATE ${CPU_SOURCES})
 
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+if (CMAKE_SYSTEM_NAME MATCHES Windows)
 	enable_language(CUDA)
 	# Add CUDA source files to the list of sources
 	file(GLOB CU_SOURCES CONFIGURE_DEPENDS CUDA_sources/*.cu CUDA_sources/*.cuh)
@@ -21,9 +21,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
  
 	set_target_properties(GPU_LIB PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	set_source_files_properties(${CU_SOURCES} PROPERTIES LANGUAGE CUDA)
-endif()
-
-
-if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+else()
 	add_subdirectory(METAL_sources)
 endif()

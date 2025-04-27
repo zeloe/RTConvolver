@@ -1,15 +1,15 @@
+
+
 cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
+project(RTConvolver VERSION 0.0.1 LANGUAGES CXX)
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
- 	project(RTConvolver VERSION 0.0.1 LANGUAGES CXX CUDA)
-else()
-    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX C) # No CUDA
+if (CMAKE_SYSTEM_NAME MATCHES Windows)
+    enable_language(CUDA)
 endif()
 #if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 #    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
 #endif() 
-
 
 # IDEs:  Enable grouping of source files into folders in IDEs.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
