@@ -7,11 +7,11 @@
 class Gain : public juce::Thread
 {
 public:
-	Gain(juce::AudioProcessorValueTreeState& treeState) : parameters(treeState), juce::Thread("ParamThread") {
+	Gain(juce::AudioProcessorValueTreeState& treeState) : juce::Thread("ParamThread"),parameters(treeState)  {
 		getParams();
 		startThread(Priority::normal);
 	}
-	~Gain() 
+	~Gain() override
 	{
 		stopThread(2000);
 	}
@@ -49,7 +49,7 @@ public:
 		float* bufferR = bufferToProcess.getWritePointer(1);
 		 
 		for (int sample = 0; sample < bs; ++sample) {
-			new_Gain = fac + pole * 0.99;
+			new_Gain = fac + pole * 0.99f;
 			bufferL[sample] *= new_Gain;
 			bufferR[sample] *= new_Gain;
 			pole = new_Gain;
