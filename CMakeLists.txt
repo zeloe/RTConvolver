@@ -1,7 +1,13 @@
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
-project(RTConvolver LANGUAGES VERSION 0.0.1 CXX)
-
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX) # No CUDA
+else()
+    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX CUDA)
+endif()
+#if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+#    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
+#endif() 
 
 
 # IDEs:  Enable grouping of source files into folders in IDEs.
@@ -32,10 +38,6 @@ FetchContent_Declare(juce
 FetchContent_MakeAvailable(juce)
 
  
- 
-if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
-endif()
 set (TARGET_NAME ${PROJECT_NAME})
  
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS "ON")
@@ -66,8 +68,7 @@ target_compile_definitions(${TARGET_NAME}
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_console_app` call
         JUCE_USE_CURL=0)    # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_console_app` call
-# Set C++ standard
-set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_STANDARD 17)
+
 
 
 
