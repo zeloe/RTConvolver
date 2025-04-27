@@ -9,7 +9,7 @@ public:
 		lnf = std::make_unique<ZenLook>(color);
 		setLookAndFeel(lnf.get());
 	
-	};
+	}
 
 	~ZenSlider() 
 	{
