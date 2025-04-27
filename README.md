@@ -45,3 +45,7 @@ cmake -B build -G Xcode
 ## To Do
 Find a way to properly normalize output.
 
+## Tested on 
+Macbook Air M4 \
+GeForce GTX 1660 Ti 
+
