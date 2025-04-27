@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(RTConvolver LANGUAGES VERSION 0.0.1 CUDA CXX )
+project(RTConvolver LANGUAGES VERSION 0.0.1 CXX)
 
 
 
@@ -11,7 +11,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
 
-set(LIB_JUCE_TAG "8.0.3")
+set(LIB_JUCE_TAG "8.0.6")
 
 include(FetchContent)
 
@@ -80,7 +80,7 @@ target_link_libraries(${TARGET_NAME}
         juce::juce_core
         juce::juce_audio_utils
     	juce::juce_dsp
-        CU_LIB
+        GPU_LIB
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags

@@ -7,11 +7,11 @@
 class Gain : public juce::Thread
 {
 public:
-	Gain(juce::AudioProcessorValueTreeState& treeState) : parameters(treeState), juce::Thread("ParamThread") {
+	Gain(juce::AudioProcessorValueTreeState& treeState) : juce::Thread("ParamThread"),parameters(treeState)  {
 		getParams();
 		startThread(Priority::normal);
 	}
-	~Gain() 
+	~Gain() override
 	{
 		stopThread(2000);
 	}
@@ -47,24 +47,14 @@ public:
 		float fac = atomic_gain.load();
 		float* bufferL = bufferToProcess.getWritePointer(0);
 		float* bufferR = bufferToProcess.getWritePointer(1);
-
-
-		const float* bufferReadL = bufferToProcess.getReadPointer(0);
-		const float* bufferReadR = bufferToProcess.getReadPointer(1);
+		 
 		for (int sample = 0; sample < bs; ++sample) {
-			new_Gain = fac + pole * 0.99;
+			new_Gain = fac + pole * 0.99f;
 			bufferL[sample] *= new_Gain;
 			bufferR[sample] *= new_Gain;
 			pole = new_Gain;
 		}
-		
-
-		for (int sample = 0; sample < bs; ++sample) {
-				float outL = tanh(bufferReadL[sample]); 
-				float outR = tanh(bufferReadR[sample]);
-				bufferL[sample] = outL;
-				bufferR[sample] = outR;
-		}
+		 
 
 
 

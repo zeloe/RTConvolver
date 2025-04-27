@@ -11,7 +11,7 @@ const juce::Rectangle<int> sizeRect{ 75,10,100,20 };
 
 const juce::Colour outLineColor = juce::Colours::lightgrey.darker().darker();
 
-static juce::StringArray sizesLabel = { " 0.5 "," 1 ", " 2 " , " 3 " , " 4 " };
+static juce::StringArray sizesLabel = { " 0.25 "," 0.5 "," 1 ", " 1.5 " ,  " 2 " , " 2.5 " , " 3 " };
 
 
 

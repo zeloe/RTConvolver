@@ -1,2 +1,4 @@
 **/build
 **/Libs
+**/.DS_Store
+/vst_sources/METAL_sources/metal-cpp
