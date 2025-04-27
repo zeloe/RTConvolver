@@ -1,6 +1,16 @@
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(RTConvolver LANGUAGES VERSION 0.0.1 CXX)
+
+
+cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
+
+project(RTConvolver VERSION 0.0.1 LANGUAGES CXX)
+
+if (CMAKE_SYSTEM_NAME MATCHES Windows)
+    enable_language(CUDA)
+endif()
+#if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+#    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
+#endif() 
 
 
 
