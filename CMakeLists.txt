@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
-if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX) # No CUDA
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+ 	project(RTConvolver VERSION 0.0.1 LANGUAGES CXX CUDA)
 else()
-    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX CUDA)
+    project(RTConvolver VERSION 0.0.1 LANGUAGES CXX C) # No CUDA
 endif()
 #if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 #    set(CMAKE_CUDA_HOST_COMPILER "/usr/bin/g++-10")
