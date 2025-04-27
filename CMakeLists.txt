@@ -11,7 +11,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Show all module sources in IDE projects" ON)
 
 
-set(LIB_JUCE_TAG "8.0.3")
+set(LIB_JUCE_TAG "8.0.6")
 
 include(FetchContent)
 

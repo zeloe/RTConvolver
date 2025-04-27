@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "pluginparamers/PluginParameters.h"
-#include "DSP/ProcessorSwapper.h"
+#include "../GPU_sources/GPUConvolutionEngine.cuh"
 #include "DSP/GainStaging.h"
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -48,9 +48,9 @@ public:
     juce::Identifier sizeParamID{ "SizeMenuIndex" }; // Identifier for your SizeMenu parameter
 
     void getSize(float size);
-  
-    std::unique_ptr<ProcessorSwapper<float>>  swapper;
+   
 private:
+    std::unique_ptr<GPU_ConvolutionEngine> gpu_convolution;
     std::unique_ptr <Gain> gain;
     juce::AudioBuffer<float> out;
     juce::AudioBuffer<float> sliceBuf;

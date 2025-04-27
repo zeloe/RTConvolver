@@ -1,8 +1,8 @@
-# Add CPU source files to the list of sources for the executable
-file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS source/*.cpp source/*.h)
+ 
+file(GLOB_RECURSE CPU_SOURCES CONFIGURE_DEPENDS CPU_sources/*.cpp CPU_sources/*.h)
 
 # Add CUDA source files to the list of sources
-file(GLOB CU_SOURCES CONFIGURE_DEPENDS source/CPU/GPU/*.cu source/CPU/GPU/*.cuh)
+file(GLOB CU_SOURCES CONFIGURE_DEPENDS GPU_sources/*.cu GPU_sources/*.cuh)
 
 # Add CPU sources to the target
 target_sources(${TARGET_NAME} PRIVATE ${CPU_SOURCES})

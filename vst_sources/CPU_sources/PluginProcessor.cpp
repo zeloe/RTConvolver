@@ -16,7 +16,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::createParameterLayout())
 {
     
-    swapper = std::make_unique<ProcessorSwapper<float>>();
+    gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
     gain = std::make_unique<Gain>(treeState);
     treeState.state.setProperty(sizeParamID, 0, nullptr); // Default value
     // Fetch the initial value
@@ -25,6 +25,7 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
+     
 }
 
 //==============================================================================
@@ -95,11 +96,10 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    DBG(samplesPerBlock);
-    //this is the total amount of samples in circualr buffer do not set this too high
+    gpu_convolution->setSize(sampleRate);
     
     gain->prepare();
-    swapper->prepare(samplesPerBlock, sampleRate);
+    
     
    
     sliceBuf.setSize(4,samplesPerBlock);
@@ -149,10 +149,25 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     sliceBuf.copyFrom(3, 0, sideChainBuffer, 1, 0, bs);
     auto outBus = getBus(false, 0);
     auto outBuffer = outBus->getBusBuffer(buffer);
-    swapper->push(sliceBuf, outBuffer);
-     
 
-    gain->process(outBuffer);
+
+
+  
+    auto in_A = sliceBuf.getReadPointer(0);
+    auto in_B = sliceBuf.getReadPointer(1);
+    auto in_C = sliceBuf.getReadPointer(2);
+    auto in_D = sliceBuf.getReadPointer(3);
+    auto out_A = sliceBuf.getWritePointer(0);
+    auto out_B = sliceBuf.getWritePointer(1);
+
+    gpu_convolution->process(in_A, in_B, in_C, in_D, out_A, out_B);
+ 
+
+
+    gain->process(sliceBuf);
+
+    outBuffer.copyFrom(0, 0, sliceBuf, 0, 0, bs);
+    outBuffer.copyFrom(1, 0, sliceBuf, 1 , 0, bs);
 
   
    
@@ -196,5 +211,5 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
 void AudioPluginAudioProcessor::getSize(float Size) {
 
-    swapper->prepareEngines(Size);
+    gpu_convolution->setSize(Size * getSampleRate());
 }
