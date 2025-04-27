@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(RTConvolver LANGUAGES VERSION 0.0.1 CUDA CXX )
+project(RTConvolver LANGUAGES VERSION 0.0.1 CXX)
 
 
 
@@ -80,7 +80,7 @@ target_link_libraries(${TARGET_NAME}
         juce::juce_core
         juce::juce_audio_utils
     	juce::juce_dsp
-        CU_LIB
+        GPU_LIB
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
