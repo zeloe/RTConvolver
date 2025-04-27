@@ -7,12 +7,12 @@
 
 class ZenLook : public juce::LookAndFeel_V4 {
 public:
-	ZenLook() {};
+	ZenLook() {}
     ZenLook(juce::Colour interiorColour)
     {
         this->interiorColour = interiorColour;
     };
-	~ZenLook() override {} ;
+	~ZenLook() override {}
 
 	void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
 		const float rotaryStartAngle, const float rotaryEndAngle, juce::Slider& slider) override
