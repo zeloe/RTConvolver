@@ -72,7 +72,11 @@ private:
     juce::AudioBuffer<float> fifoOutputBuffer { 4, 4096 * 10}; // to hold output after processing
     juce::AudioBuffer<float> sliceBuf { 4, 4096 * 10 };
     float lastSize = 0.f;
-    const float epsilon = 0.001f;  // Define a small tolerance value
+    static constexpr float epsilon = 0.001f;  // Define a small tolerance value
+    static constexpr float rms = 0.707f;
+    float lastNormA = 1.f;
+    float lastNormB = 1.f;
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

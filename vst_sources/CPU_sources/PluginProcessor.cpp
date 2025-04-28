@@ -113,7 +113,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
    
 
     maxBs = samplesPerBlock;
-    isProcessing.store(false);
+    lastNormA = 0.5f;
+    lastNormB = 0.5f;
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -196,9 +197,27 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
             audioFifo_from_GPU.finishedRead(size3 + size4);
         }
-
+    
+    const float outRMSA  = outBuffer.getRMSLevel(0, 0, bs);
+    const float outRMSB  = outBuffer.getRMSLevel(1, 0, bs);
+    
+    float normA = 0.5f;
+    if(bool(outRMSA) == true) {
+        normA = sqrt(rms / outRMSA);
+    }
+    float normB = 0.5f;
+    if(bool(outRMSB) == true) {
+        normB = sqrt(rms / outRMSB);
+    }
+    
+    
+    outBuffer.applyGainRamp(0, 0, bs, lastNormA,normA);
+    outBuffer.applyGainRamp(1, 0, bs, lastNormB,normB);
+        
+    lastNormA = normA;
+    lastNormB = normB;
+    
         gain->process(outBuffer);
-        outBuffer.applyGain(0.025f);
     }
 
     
