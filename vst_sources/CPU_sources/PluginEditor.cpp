@@ -22,7 +22,7 @@ AudioPluginEditor::~AudioPluginEditor()
 //==============================================================================
 void AudioPluginEditor::paint (juce::Graphics& g)
 {
-   
+    juce::ignoreUnused(g);
 }
 
 void AudioPluginEditor::resized()

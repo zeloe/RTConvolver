@@ -2,7 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "GUI/GUI.h"
-#include "pluginparamers/PluginParameters.h"
+#include "Parameters.h"
 //==============================================================================
 class AudioPluginEditor final : public juce::AudioProcessorEditor
 {

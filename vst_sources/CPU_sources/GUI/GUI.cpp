@@ -3,7 +3,7 @@
 
 GUI::GUI(AudioPluginProcessor& processor) : proc(processor),
 VolumeKnob(std::make_unique<ZenSlider>(juce::Colours::red)),
-volumeAttach(proc.treeState, "param_Gain", *VolumeKnob.get())
+volumeAttach(proc.treeState, "gain", *VolumeKnob.get())
 {
 
     sizeMenu = std::make_unique<SizeMenu>(proc.treeState.state, proc.sizeParamID,proc);
