@@ -19,8 +19,7 @@ treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::cre
     
     gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
     gain = std::make_unique<Gain>(treeState);
-    //this isn't working
-   
+    
     startThread(Priority::highest);
 }
 
