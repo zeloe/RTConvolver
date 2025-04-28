@@ -14,12 +14,12 @@ if (CMAKE_SYSTEM_NAME MATCHES Windows)
 
 	# Compile CUDA source files into a static library
 	add_library(GPU_LIB STATIC ${CU_SOURCES})
-	set_property(TARGET CU_LIB PROPERTY CUDA_ARCHITECTURES native)
+	set_property(TARGET GPU_LIB PROPERTY CUDA_ARCHITECTURES native)
  
-	set_target_properties(CU_LIB PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-	set_property(TARGET CU_LIB PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-	 # Ensure CU_LIB is compiled with nvcc
-	set_target_properties(CU_LIB PROPERTIES POSITION_INDEPENDENT_CODE ON)
+	set_target_properties(GPU_LIB PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+	set_property(TARGET GPU_LIB PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+ 
+	set_target_properties(GPU_LIB PROPERTIES POSITION_INDEPENDENT_CODE ON)
 	set_source_files_properties(${CU_SOURCES} PROPERTIES LANGUAGE CUDA)
 else()
 	add_subdirectory(METAL_sources)
