@@ -3,18 +3,14 @@
 
 //==============================================================================
 AudioPluginProcessor::AudioPluginProcessor()
+#ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
                      .withInput("Main Input", juce::AudioChannelSet::stereo(), true)
                      .withInput("Sidechain Input", juce::AudioChannelSet::stereo(), true) // Sidechain bus
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     
-                     #endif
-                       ),
+                     .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
 juce::Thread("GPUThread"),
 treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::createParameterLayout())
+#endif
 {
     
     gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
