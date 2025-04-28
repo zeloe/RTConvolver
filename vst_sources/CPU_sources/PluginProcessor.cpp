@@ -2,7 +2,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-AudioPluginAudioProcessor::AudioPluginAudioProcessor()
+AudioPluginProcessor::AudioPluginProcessor()
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
@@ -19,90 +19,79 @@ treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::cre
     
     gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
     gain = std::make_unique<Gain>(treeState);
+    //this isn't working
    
-    auto sizeParamValue = treeState.state.getProperty(sizeParamID);
-    if(sizeParamValue) {
-        // Load the value and cast it to a float
-        float Size = static_cast<float>(sizeParamValue);
-        gpu_convolution->setSize(Size * float(getSampleRate()));
-    }
     startThread(Priority::highest);
 }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
+AudioPluginProcessor::~AudioPluginProcessor()
 {
     stopThread(2000);
 }
 
 //==============================================================================
-const juce::String AudioPluginAudioProcessor::getName() const
+const juce::String AudioPluginProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool AudioPluginAudioProcessor::acceptsMidi() const
+bool AudioPluginProcessor::acceptsMidi() const
 {
-   #if JucePlugin_WantsMidiInput
-    return true;
-   #else
     return false;
-   #endif
 }
 
-bool AudioPluginAudioProcessor::producesMidi() const
+bool AudioPluginProcessor::producesMidi() const
 {
-   #if JucePlugin_ProducesMidiOutput
-    return true;
-   #else
     return false;
-   #endif
 }
 
-bool AudioPluginAudioProcessor::isMidiEffect() const
+bool AudioPluginProcessor::isMidiEffect() const
 {
-   #if JucePlugin_IsMidiEffect
-    return true;
-   #else
     return false;
-   #endif
 }
 
-double AudioPluginAudioProcessor::getTailLengthSeconds() const
+double AudioPluginProcessor::getTailLengthSeconds() const
 {
     return 0.f;
 }
 
-int AudioPluginAudioProcessor::getNumPrograms()
+int AudioPluginProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int AudioPluginAudioProcessor::getCurrentProgram()
+int AudioPluginProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void AudioPluginAudioProcessor::setCurrentProgram (int index)
+void AudioPluginProcessor::setCurrentProgram (int index)
 {
     juce::ignoreUnused (index);
 }
 
-const juce::String AudioPluginAudioProcessor::getProgramName (int index)
+const juce::String AudioPluginProcessor::getProgramName (int index)
 {
     juce::ignoreUnused (index);
     return {};
 }
 
-void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void AudioPluginProcessor::changeProgramName (int index, const juce::String& newName)
 {
     juce::ignoreUnused (index, newName);
 }
 
 //==============================================================================
-void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void AudioPluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    gpu_convolution->setSize(float(sampleRate));
+    
+    auto sizeParamValue = treeState.state.getProperty(sizeParamID);
+    if(sizeParamValue) {
+    // Load the value and cast it to a float
+    float Size = static_cast<float>(sizeParamValue);
+    gpu_convolution->setSize(Size * float(sampleRate));
+    }
     
     gain->prepare();
     
@@ -117,12 +106,12 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     lastNormB = 0.5f;
 }
 
-void AudioPluginAudioProcessor::releaseResources()
+void AudioPluginProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
-bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool AudioPluginProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     const int numInputMain = layouts.getNumChannels(true, 0);
     const int numInputSide = layouts.getNumChannels(true, 1);
@@ -138,7 +127,7 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout
 }
  
 
-void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void AudioPluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,[[maybe_unused]] juce::MidiBuffer& midiMessages)
 {
         const int bs = buffer.getNumSamples();  // Block size
         juce::ignoreUnused(midiMessages);
@@ -226,35 +215,33 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     lastNormA = normA;
     lastNormB = normB;
     
-        gain->process(outBuffer);
-    }
+    gain->process(outBuffer);
+}
 
     
 
 //==============================================================================
-bool AudioPluginAudioProcessor::hasEditor() const
+bool AudioPluginProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
+juce::AudioProcessorEditor* AudioPluginProcessor::createEditor()
 {
-    return new AudioPluginAudioProcessorEditor (*this); //juce::GenericAudioProcessorEditor(*this);//
+    return new AudioPluginEditor (*this); //juce::GenericAudioProcessorEditor(*this);//
 }
 
 //==============================================================================
-void AudioPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void AudioPluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    juce::MemoryOutputStream mos(destData, true);
-        treeState.state.writeToStream(mos);
+    copyXmlToBinary(*treeState.copyState().createXml(), destData);
 }
 
-void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void AudioPluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-        if (tree.isValid())
-        {
-            treeState.replaceState(tree);
+    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data,sizeInBytes));
+        if(xml.get() != nullptr && xml->hasTagName(treeState.state.getType())) {
+            treeState.replaceState(juce::ValueTree::fromXml(*xml));
         }
 }
 
@@ -262,10 +249,10 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new AudioPluginAudioProcessor();
+    return new AudioPluginProcessor();
 }
 
-void AudioPluginAudioProcessor::getSize(float Size) {
+void AudioPluginProcessor::getSize(float Size) {
 
     if(std::abs(Size - lastSize) > epsilon) {
         gpu_convolution->setSize(Size * float(getSampleRate()));
@@ -273,7 +260,7 @@ void AudioPluginAudioProcessor::getSize(float Size) {
     }
 }
 
-void AudioPluginAudioProcessor::run()
+void AudioPluginProcessor::run()
 {
     while (!threadShouldExit())
     {

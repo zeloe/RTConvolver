@@ -13,12 +13,12 @@
 
 #include "DSP/GainStaging.h"
 //==============================================================================
-class AudioPluginAudioProcessor final : public juce::AudioProcessor, public juce::Thread
+class AudioPluginProcessor final : public juce::AudioProcessor, public juce::Thread
 {
 public:
     //==============================================================================
-    AudioPluginAudioProcessor();
-    ~AudioPluginAudioProcessor() override;
+    AudioPluginProcessor();
+    ~AudioPluginProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -78,5 +78,5 @@ private:
     float lastNormB = 0.5f;
     
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginProcessor)
 };
