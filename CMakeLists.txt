@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
-project(RTConvolver VERSION 0.0.1 LANGUAGES CXX C)
+project(RTConvolver VERSION 0.0.5 LANGUAGES CXX C)
 
 
 if (CMAKE_SYSTEM_NAME MATCHES Windows)
