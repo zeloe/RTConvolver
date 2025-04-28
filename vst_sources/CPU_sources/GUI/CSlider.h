@@ -8,17 +8,23 @@ public:
 	{
 		lnf = std::make_unique<ZenLook>(color);
 		setLookAndFeel(lnf.get());
-	
+        
+        
+       
+        
+        
 	}
 
-	~ZenSlider() 
+	~ZenSlider() override
 	{
 	setLookAndFeel(nullptr);
     }
-
+    
+   
 
 
 
 private:
+   
 	std::unique_ptr<ZenLook> lnf;
 };

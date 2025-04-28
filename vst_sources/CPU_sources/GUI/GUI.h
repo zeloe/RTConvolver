@@ -25,7 +25,10 @@ private:
     std::unique_ptr<ZenSlider> VolumeKnob;
     std::unique_ptr<SizeMenu> sizeMenu;
     juce::AudioProcessorValueTreeState::SliderAttachment  volumeAttach;
-     
+    juce::Label dbLabel;
+  
+    
+    void updateDbLabel();
   
 };
 
