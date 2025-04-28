@@ -9,9 +9,8 @@
 #endif
 #include <JuceHeader.h>
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "pluginparamers/PluginParameters.h"
+#include "Parameters.h"
 
-#include "DSP/GainStaging.h"
 //==============================================================================
 class AudioPluginProcessor final : public juce::AudioProcessor, public juce::Thread
 {
@@ -52,15 +51,17 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    juce::AudioProcessorValueTreeState treeState;
+    juce::AudioProcessorValueTreeState treeState {
+        *this, nullptr, "Parameters", Parameters::createParameterLayout()
+    };
     juce::Identifier sizeParamID{ "SizeMenuIndex" }; // Identifier for your SizeMenu parameter
 
     void getSize(float size);
    
    
 private:
+    Parameters params;
     std::unique_ptr<GPU_ConvolutionEngine> gpu_convolution;
-    std::unique_ptr <Gain> gain;
     juce::AudioBuffer<float> out;
     int maxBs;
     int totalSize = 0;

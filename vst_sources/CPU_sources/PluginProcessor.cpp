@@ -9,13 +9,10 @@ AudioPluginProcessor::AudioPluginProcessor()
                      .withInput("Sidechain Input", juce::AudioChannelSet::stereo(), true) // Sidechain bus
                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
 juce::Thread("GPUThread"),
-treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::createParameterLayout())
+params(treeState)
 #endif
 {
-    
     gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
-    gain = std::make_unique<Gain>(treeState);
-    
     startThread(Priority::highest);
 }
 
@@ -88,7 +85,7 @@ void AudioPluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     gpu_convolution->setSize(Size * float(sampleRate));
     }
     
-    gain->prepare();
+    params.prepareToPlay(sampleRate);
     
     
    
@@ -124,71 +121,74 @@ bool AudioPluginProcessor::isBusesLayoutSupported(const BusesLayout& layouts) co
 
 void AudioPluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,[[maybe_unused]] juce::MidiBuffer& midiMessages)
 {
-        const int bs = buffer.getNumSamples();  // Block size
-        juce::ignoreUnused(midiMessages);
-        juce::ScopedNoDenormals noDenormals;
+   
+    juce::ScopedNoDenormals noDenormals;
 
-        auto inputBus = getBus(true, 0);
-        auto inputBuffer = inputBus->getBusBuffer(buffer);
-        auto sideChainBus = getBus(true, 1);
-        auto sideChainBuffer = sideChainBus->getBusBuffer(buffer);
-        auto outBus = getBus(false, 0);
-        auto outBuffer = outBus->getBusBuffer(buffer);
+    const int bs = buffer.getNumSamples();  // Block size
+    auto inputBus = getBus(true, 0);
+    auto inputBuffer = inputBus->getBusBuffer(buffer);
+    auto sideChainBus = getBus(true, 1);
+    auto sideChainBuffer = sideChainBus->getBusBuffer(buffer);
+    auto outBus = getBus(false, 0);
+    auto outBuffer = outBus->getBusBuffer(buffer);
 
-        // Attempt to push data into FIFO
-        int start1, size1, start2, size2;
-        audioFifo_to_GPU.prepareToWrite(bs, start1, size1, start2, size2);
-
-        // Writing the data to the FIFO buffers
-        if (size1 > 0)
-        {
-            fifoInputBuffer.copyFrom(0, start1, inputBuffer, 0, 0, size1);
-            fifoInputBuffer.copyFrom(1, start1, inputBuffer, 1, 0, size1);
-            fifoInputBuffer.copyFrom(2, start1, sideChainBuffer, 0, 0, size1);
-            fifoInputBuffer.copyFrom(3, start1, sideChainBuffer, 1, 0, size1);
-        }
-        if (size2 > 0)
-        {
-            fifoInputBuffer.copyFrom(0, start2, inputBuffer, 0, 0, size2);
-            fifoInputBuffer.copyFrom(1, start2, inputBuffer, 1, 0, size2);
-            fifoInputBuffer.copyFrom(2, start2, sideChainBuffer, 0, 0, size2);
-            fifoInputBuffer.copyFrom(3, start2, sideChainBuffer, 1, 0, size2);
-        }
-
-        // Finish writing the data into FIFO
-        audioFifo_to_GPU.finishedWrite(size1 + size2);
-
-        outBuffer.clear();
-
-        // Now check if we have enough samples in the FIFO for output
-        int availableOutSamples = audioFifo_from_GPU.getNumReady();
-        if (availableOutSamples >= bs)
-        {
-            int start3, size3, start4, size4;
-            audioFifo_from_GPU.prepareToRead(bs, start3, size3, start4, size4);
-
-            if (size3 > 0)
-            {
-                outBuffer.copyFrom(0, 0, fifoOutputBuffer, 0, start3, size3);
-                outBuffer.copyFrom(1, 0, fifoOutputBuffer, 1, start3, size3);
-            }
-
-            if (size4 > 0)
-            {
-                outBuffer.addFrom(0, size3, fifoOutputBuffer, 0, start4, size4);
-                outBuffer.addFrom(1, size3, fifoOutputBuffer, 1, start4, size4);
-            }
-
-            audioFifo_from_GPU.finishedRead(size3 + size4);
-        }
+    // Attempt to push data into FIFO
+    int start1, size1, start2, size2;
+    audioFifo_to_GPU.prepareToWrite(bs, start1, size1, start2, size2);
+        
+    params.update();
     
+    // Writing the data to the FIFO buffers
+    if (size1 > 0)
+    {
+        fifoInputBuffer.copyFrom(0, start1, inputBuffer, 0, 0, size1);
+        fifoInputBuffer.copyFrom(1, start1, inputBuffer, 1, 0, size1);
+        fifoInputBuffer.copyFrom(2, start1, sideChainBuffer, 0, 0, size1);
+        fifoInputBuffer.copyFrom(3, start1, sideChainBuffer, 1, 0, size1);
+    }
+    if (size2 > 0)
+    {
+        fifoInputBuffer.copyFrom(0, start2, inputBuffer, 0, 0, size2);
+        fifoInputBuffer.copyFrom(1, start2, inputBuffer, 1, 0, size2);
+        fifoInputBuffer.copyFrom(2, start2, sideChainBuffer, 0, 0, size2);
+        fifoInputBuffer.copyFrom(3, start2, sideChainBuffer, 1, 0, size2);
+    }
+
+    // Finish writing the data into FIFO
+    audioFifo_to_GPU.finishedWrite(size1 + size2);
+
+    outBuffer.clear();
+
+    // Now check if we have enough samples in the FIFO for output
+    int availableOutSamples = audioFifo_from_GPU.getNumReady();
+    if (availableOutSamples >= bs)
+    {
+        int start3, size3, start4, size4;
+        audioFifo_from_GPU.prepareToRead(bs, start3, size3, start4, size4);
+
+        if (size3 > 0)
+        {
+            outBuffer.copyFrom(0, 0, fifoOutputBuffer, 0, start3, size3);
+            outBuffer.copyFrom(1, 0, fifoOutputBuffer, 1, start3, size3);
+        }
+
+        if (size4 > 0)
+        {
+            outBuffer.addFrom(0, size3, fifoOutputBuffer, 0, start4, size4);
+            outBuffer.addFrom(1, size3, fifoOutputBuffer, 1, start4, size4);
+        }
+
+        audioFifo_from_GPU.finishedRead(size3 + size4);
+    }
+    
+    //Normalisation of output
     const float outRMSA  = outBuffer.getRMSLevel(0, 0, bs);
     const float outRMSB  = outBuffer.getRMSLevel(1, 0, bs);
     
     float normA = 0.5f;
     if(bool(outRMSA) == true) {
         if(outRMSA < rms) {
-        normA = sqrt(outRMSA / rms);
+            normA = sqrt(outRMSA / rms);
          
         } else {
             normA = sqrt(rms / outRMSA);
@@ -209,8 +209,13 @@ void AudioPluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,[[maybe
         
     lastNormA = normA;
     lastNormB = normB;
-    
-    gain->process(outBuffer);
+    for(int ch = 0; ch < 2; ch++) {
+        float* write = outBuffer.getWritePointer(ch);
+        for(int sample = 0;  sample < outBuffer.getNumSamples(); sample++) {
+            params.smoothen();
+            write[sample] *= params.gain;
+        }
+    }
 }
 
     
