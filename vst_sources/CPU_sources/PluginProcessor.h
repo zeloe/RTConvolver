@@ -74,8 +74,8 @@ private:
     float lastSize = 0.f;
     static constexpr float epsilon = 0.001f;  // Define a small tolerance value
     static constexpr float rms = 0.707f;
-    float lastNormA = 1.f;
-    float lastNormB = 1.f;
+    float lastNormA = 0.5f;
+    float lastNormB = 0.5f;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)

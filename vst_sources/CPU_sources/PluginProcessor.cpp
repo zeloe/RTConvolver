@@ -203,11 +203,20 @@ void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
     
     float normA = 0.5f;
     if(bool(outRMSA) == true) {
-        normA = sqrt(rms / outRMSA);
+        if(outRMSA < rms) {
+        normA = sqrt(outRMSA / rms);
+         
+        } else {
+            normA = sqrt(rms / outRMSA);
+        }
     }
     float normB = 0.5f;
     if(bool(outRMSB) == true) {
-        normB = sqrt(rms / outRMSB);
+        if(outRMSB < rms) {
+            normB = sqrt(outRMSB / rms);
+        }  else {
+            normB = sqrt(rms / outRMSB);
+        }
     }
     
     
