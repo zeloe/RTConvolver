@@ -1,9 +1,7 @@
 
+project(RTConvolver VERSION 0.0.1 LANGUAGES CXX C)
 
-
-cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
-
-project(RTConvolver VERSION 0.0.1 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 if (CMAKE_SYSTEM_NAME MATCHES Windows)
     enable_language(CUDA)
