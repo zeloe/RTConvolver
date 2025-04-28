@@ -1,4 +1,4 @@
-<REAPER_PROJECT 0.1 "7.36/macOS-arm64" 1745829153
+<REAPER_PROJECT 0.1 "7.36/macOS-arm64" 1745829336
   <NOTES 0 2
   >
   RIPPLE 0 0
@@ -105,7 +105,7 @@
     AUTOMODE 0
     PANLAWFLAGS 3
     VOLPAN 1 0 -1 -1 1
-    MUTESOLO 0 0 0
+    MUTESOLO 1 0 0
     IPHASE 0
     PLAYOFFS 0 1
     ISBUS 0 0
@@ -202,7 +202,7 @@
       DOCKED 0
       BYPASS 0 0 0
       <JS synthesis/tonegenerator ""
-        -12 -6 1072 0 0 0 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        -12 -6 474 0 0 0 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       >
       FLOATPOS 0 0 0 0
       FXID {31EB48FA-EBD8-7641-9626-7F4E4FD21D91}
@@ -256,7 +256,7 @@
     MIDIOUT -1
     MAINSEND 0 0
     <FXCHAIN
-      WNDRECT 890 807 793 150
+      WNDRECT 890 808 793 150
       SHOW 1
       LASTSEL 0
       DOCKED 0
