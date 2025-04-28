@@ -1,7 +1,7 @@
 
 #include "GUI.h"
 
-GUI::GUI(AudioPluginAudioProcessor& processor) : proc(processor),
+GUI::GUI(AudioPluginProcessor& processor) : proc(processor),
 VolumeKnob(std::make_unique<ZenSlider>(juce::Colours::red)),
 volumeAttach(proc.treeState, "param_Gain", *VolumeKnob.get())
 {

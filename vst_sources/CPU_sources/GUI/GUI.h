@@ -14,13 +14,13 @@ class GUI : public juce::Component
 {
 public:
     
-    GUI(AudioPluginAudioProcessor& processor);
+    GUI(AudioPluginProcessor& processor);
     
     ~GUI() override ;
     
     void resized() override;
     void paint(juce::Graphics& g) override;
-    AudioPluginAudioProcessor& proc;
+    AudioPluginProcessor& proc;
 private:
     std::unique_ptr<ZenSlider> VolumeKnob;
     std::unique_ptr<SizeMenu> sizeMenu;
