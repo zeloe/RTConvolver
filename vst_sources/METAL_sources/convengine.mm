@@ -105,12 +105,12 @@ void GPU_ConvolutionEngine::process(const float* inputA,const float* inputB,cons
     
     
     for (int i = 0; i < bs; i++) {
-        outputA[i] = (convResBufferA[i] + overLapBufferA[i]) * 0.015f;
+        outputA[i] = (convResBufferA[i] + overLapBufferA[i]) * 0.25f;
         overLapBufferA[i] = convResBufferA[bs + i];
     }
     
     for (int i = 0; i < bs; i++) {
-        outputB[i] = (convResBufferB[i] + overLapBufferB[i]) * 0.015f;
+        outputB[i] = (convResBufferB[i] + overLapBufferB[i]) * 0.25f;
         overLapBufferB[i] = convResBufferB[bs + i];
     }
     
@@ -179,6 +179,22 @@ void GPU_ConvolutionEngine::createCommandQueue() {
     
     _mCommandQueue  = _pDevice->newCommandQueue();
     
+}
+
+void GPU_ConvolutionEngine::prepare(int block_Size, float size) {
+    size_param = size;
+    bs = block_Size;
+    setSize(size);
+    bsFloat = bs * sizeof(float);
+    // Size of result (int)
+    convResSize = bs * 2;
+    // Size of result (bytes)
+    convResSizeFloat = convResSize * sizeof(float);
+    //
+    uint sizes[2] = { static_cast<uint>(bs), static_cast<uint>(convResSize)};
+    memcpy(_sizes->contents(), sizes, sizeof(uint) * 2);
+    
+    numberOfThreads = MTL::Size::Make(bs,1,1);
 }
 
 
@@ -254,7 +270,7 @@ void GPU_ConvolutionEngine::sendComputeCommandCommand() {
 
         encoder->endEncoding();
     }
-    //double buffering
+
     if (previousCommandBuffer) {
         previousCommandBuffer->waitUntilCompleted();  // Wait only if previous is still running
         previousCommandBuffer->release();
@@ -269,10 +285,11 @@ void GPU_ConvolutionEngine::sendComputeCommandCommand() {
 
 
 void GPU_ConvolutionEngine::setSize(float size) {
-    
-    partitions = (size / float(bs)) + 1;
+    size_param = size;
+    partitions = (size_param / float(bs)) + 1;
     paddedSize = partitions * bs;
     gridSize = MTL::Size::Make(paddedSize,1,1);
     clear();
     index = 0;
 }
+

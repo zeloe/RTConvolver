@@ -15,7 +15,7 @@ public:
     void process(const float* inputA,const float* inputB,const float* inputC,const float* inputD, float* outputA,  float* outputB);
     void init();
     void setSize(float size);
-    
+    void prepare(int block_size, float size);
 private:
     void initDevice();
     
@@ -57,6 +57,7 @@ private:
     int offset = 0;
     int bs = 0;
     int bsFloat = 0;
+    float size_param = 0;
     int convResSize = 0;
     int convResSizeFloat = 0;
     int paddedSize = 0;
