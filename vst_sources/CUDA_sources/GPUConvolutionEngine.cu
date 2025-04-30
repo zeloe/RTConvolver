@@ -36,8 +36,6 @@ GPU_ConvolutionEngine::GPU_ConvolutionEngine() {
 
 	clear();
 
-	cudaStreamCreate(&stream_htod);
-	cudaStreamCreate(&stream_dtoh);
 }
 
 
@@ -107,9 +105,19 @@ void GPU_ConvolutionEngine::cleanup() {
 
 	 
 
-	cudaStreamDestroy(stream_htod);
-	cudaStreamDestroy(stream_dtoh);
+}
 
+
+void GPU_ConvolutionEngine::prepare(int buffersize, float size) {
+
+	bs = buffersize;
+	setSize(size);
+	GPUConv::changeSizes(bs);
+	dThreads.x = bs;
+	
+	bs_float = bs * sizeof(float);
+	conv_res_size = bs * 2;
+	conv_res_float = conv_res_size * sizeof(float);
 }
 
 
@@ -119,7 +127,7 @@ void GPU_ConvolutionEngine::setSize(float size) {
 
 	
 	// Ensure proper padding
-	h_numPartitions = ((size / float(MAX_BUFFER_SIZE)) + 1.f);
+	h_numPartitions = ((size / float(bs)) + 1.f);
 
 	dBlocks.x = h_numPartitions;
 
@@ -133,26 +141,26 @@ void GPU_ConvolutionEngine::setSize(float size) {
 void GPU_ConvolutionEngine::process(const float* h_input_A, const float* h_input_B, const float* h_input_C, const float* h_input_D, float* h_output_A, float* h_output_B) {
 
 	//copy content and transfer
-	int indexBs = h_index * MAX_BUFFER_SIZE;
+	int indexBs = h_index * bs;
 
-	cudaMemcpy(d_input_A, h_input_A, MAX_BUFFER_SIZE_FLOAT, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_input_B, h_input_B, MAX_BUFFER_SIZE_FLOAT, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_input_A, h_input_A, bs_float, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_input_B, h_input_B, bs_float, cudaMemcpyHostToDevice);
 
-	cudaMemcpy(d_TimeDomain_C + indexBs, h_input_C, MAX_BUFFER_SIZE_FLOAT, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_TimeDomain_D + indexBs, h_input_D, MAX_BUFFER_SIZE_FLOAT, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_TimeDomain_C + indexBs, h_input_C, bs_float, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_TimeDomain_D + indexBs, h_input_D, bs_float, cudaMemcpyHostToDevice);
 
 	launchEngines();
 
 	//Copy to output and perform overlap add
- 	for (int i = 0; i < MAX_BUFFER_SIZE; i++) {
+ 	for (int i = 0; i < bs; i++) {
 		
 		h_output_A[i] = h_ConvolutionRes_A[i] + h_Overlap_A[i];
 		h_output_B[i] = h_ConvolutionRes_B[i] + h_Overlap_B[i];
 	}
 
 	 // Copy the last elements as overlap values for the next block
-		memcpy(h_Overlap_A, &h_ConvolutionRes_A[MAX_BUFFER_SIZE - 1], MAX_BUFFER_SIZE_FLOAT);
-		memcpy(h_Overlap_B, &h_ConvolutionRes_B[MAX_BUFFER_SIZE - 1], MAX_BUFFER_SIZE_FLOAT);
+		memcpy(h_Overlap_A, &h_ConvolutionRes_A[bs - 1], bs_float);
+		memcpy(h_Overlap_B, &h_ConvolutionRes_B[bs - 1], bs_float);
 
 }
   
@@ -173,10 +181,10 @@ void GPU_ConvolutionEngine::launchEngines() {
 	GPUConv::sharedPartitionedConvolution << <dBlocks, dThreads,0 >> > (d_ConvolutionRes_B,d_TimeDomain_B, d_TimeDomain_D);
 
 	//Copy A to Host
-	cudaMemcpy(h_ConvolutionRes_A, d_ConvolutionRes_A, CONV_RES_SIZE_FLOAT, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_ConvolutionRes_A, d_ConvolutionRes_A, conv_res_float, cudaMemcpyDeviceToHost);
 
 	//Copy B to Host
-	cudaMemcpy(h_ConvolutionRes_B, d_ConvolutionRes_B, CONV_RES_SIZE_FLOAT, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_ConvolutionRes_B, d_ConvolutionRes_B, conv_res_float, cudaMemcpyDeviceToHost);
 
 
 	// Synchronize to ensure all operations are complete

@@ -16,6 +16,12 @@ namespace GPUConv {
 		cudaMemcpyToSymbol(D_SIZES, cpu_sizes, 2 * sizeof(int));
 	}
 
+	void changeSizes(int bs) {
+		int cpu_sizes[2];
+		cpu_sizes[0] = bs;
+		cpu_sizes[1] = bs * 2;
+		cudaMemcpyToSymbol(D_SIZES, cpu_sizes, 2 * sizeof(int));
+	}
 
 
 

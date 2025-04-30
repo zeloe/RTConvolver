@@ -19,9 +19,15 @@ class GPU_ConvolutionEngine {
 
 	void setSize(float size);
 
+	void prepare(int buffersize, float size);
+
 private:
 	int h_index = 0;
 	int h_numPartitions = 0;
+	int bs = 0;
+	int bs_float = 0;
+	int conv_res_size = 0;
+	int conv_res_float = 0;
 
 	float* d_input_A = nullptr; 
 	float* d_input_B = nullptr; 
@@ -44,8 +50,6 @@ private:
 	void clear() ;
 	void cleanup();
 	void launchEngines();
-	cudaStream_t stream_htod;
-	cudaStream_t stream_dtoh;
 };
 
 #endif // _GPUConvolutionEngine_H_

@@ -104,6 +104,10 @@ void AudioPluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
         bs_process = 256;
         
     }
+
+    if (bs_process > 1024) {
+        bs_process = 1024;
+    }
     
     gpu_convolution->prepare(bs_process,Size);
    
@@ -297,10 +301,10 @@ void AudioPluginProcessor::run()
             // Handle wraparound
             if (size2 > 0)
             {
-                sliceBuf.addFrom(0, size1, fifoInputBuffer, 0, start2, size2);
-                sliceBuf.addFrom(1, size1, fifoInputBuffer, 1, start2, size2);
-                sliceBuf.addFrom(2, size1, fifoInputBuffer, 2, start2, size2);
-                sliceBuf.addFrom(3, size1, fifoInputBuffer, 3, start2, size2);
+                sliceBuf.copyFrom(0, size1, fifoInputBuffer, 0, start2, size2);
+                sliceBuf.copyFrom(1, size1, fifoInputBuffer, 1, start2, size2);
+                sliceBuf.copyFrom(2, size1, fifoInputBuffer, 2, start2, size2);
+                sliceBuf.copyFrom(3, size1, fifoInputBuffer, 3, start2, size2);
             }
             audioFifo_to_GPU.finishedRead(size1 + size2);
            
