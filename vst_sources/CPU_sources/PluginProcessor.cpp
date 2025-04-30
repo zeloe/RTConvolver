@@ -77,18 +77,35 @@ void AudioPluginProcessor::changeProgramName (int index, const juce::String& new
 //==============================================================================
 void AudioPluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+
+  
+
     
-    auto sizeParamValue = treeState.state.getProperty(sizeParamID);
-    if(sizeParamValue) {
-    // Load the value and cast it to a float
-    float Size = static_cast<float>(sizeParamValue);
-    gpu_convolution->setSize(Size * float(sampleRate));
+    
+    float sr = float(sampleRate);
+    if(sr > 48000) {
+        sr  = 48000;
     }
+    auto sizeIndexValue = treeState.state.getProperty(sizeParamID);
     
+    float Size = 0.5f * sr;
+    if(sizeIndexValue) {
+        int index = static_cast<int>(sizeIndexValue);
+    // Load the value and cast it to a float
+        Size = sizes[index];
+        Size *= sr;
+    }
     params.prepareToPlay(sampleRate);
     
     
-   
+    bs_process = samplesPerBlock;
+    if (bs_process < 256) {
+        
+        bs_process = 256;
+        
+    }
+    
+    gpu_convolution->prepare(bs_process,Size);
    
     sliceBuf.clear();
    
@@ -186,21 +203,12 @@ void AudioPluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,[[maybe
     const float outRMSB  = outBuffer.getRMSLevel(1, 0, bs);
     
     float normA = 0.5f;
-    if(bool(outRMSA) == true) {
-        if(outRMSA < rms) {
-            normA = sqrt(outRMSA / rms);
-         
-        } else {
-            normA = sqrt(rms / outRMSA);
-        }
+    if (fabs(outRMSA) > epsilon) {
+        normA = sqrt(rms / outRMSA);
     }
     float normB = 0.5f;
-    if(bool(outRMSB) == true) {
-        if(outRMSB < rms) {
-            normB = sqrt(outRMSB / rms);
-        }  else {
-            normB = sqrt(rms / outRMSB);
-        }
+    if (fabs(outRMSB) > epsilon) {
+        normB = sqrt(rms / outRMSB);
     }
     
     
@@ -254,8 +262,13 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
 void AudioPluginProcessor::getSize(float Size) {
 
+    float sr = float(getSampleRate());
+    if(sr > 48000) {
+        sr  = 48000;
+    }
+    
     if(std::abs(Size - lastSize) > epsilon) {
-        gpu_convolution->setSize(Size * float(getSampleRate()));
+        gpu_convolution->setSize(Size * sr);
         lastSize = Size;
     }
 }
@@ -265,11 +278,11 @@ void AudioPluginProcessor::run()
     while (!threadShouldExit())
     {
         int availableSamples = audioFifo_to_GPU.getNumReady();
-        if (availableSamples >= 1024 * 2)
+        if (availableSamples >= bs_process * 2)
         {
             int start1, size1, start2, size2;
             
-            audioFifo_to_GPU.prepareToRead(1024, start1, size1, start2, size2);
+            audioFifo_to_GPU.prepareToRead(bs_process, start1, size1, start2, size2);
             
           
             if (size1 > 0)
