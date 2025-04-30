@@ -14,7 +14,7 @@ if (CMAKE_SYSTEM_NAME MATCHES Windows)
 
 	# Compile CUDA source files into a static library
 	add_library(GPU_LIB STATIC ${CU_SOURCES})
-	set_property(TARGET GPU_LIB PROPERTY CUDA_ARCHITECTURES native)
+	#set_property(TARGET GPU_LIB PROPERTY CUDA_ARCHITECTURES native)
  
 	set_target_properties(GPU_LIB PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 	set_property(TARGET GPU_LIB PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
