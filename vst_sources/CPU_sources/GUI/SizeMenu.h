@@ -50,6 +50,7 @@ public:
         if (comboBoxThatHasChanged == &sizesBox)
         {
             auto selectedId = sizesBox.getSelectedId();
+            
             stateTree.setProperty(paramID, selectedId - 1, nullptr); // Update the state
             // Retrieve the text value of the currently selected item
             auto selectedText = sizesBox.getText();
