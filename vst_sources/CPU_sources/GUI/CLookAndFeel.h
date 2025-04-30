@@ -11,7 +11,7 @@ public:
     ZenLook(juce::Colour interiorColour)
     {
         this->interiorColour = interiorColour;
-    };
+    }
 	~ZenLook() override {}
 
 	void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
@@ -45,8 +45,7 @@ public:
             auto lineW = juce::jmin(8.0f, radius * 0.5f);
             auto arcRadius = radius - lineW * 0.5f;
 
-            // Calculate the end angle for the arc
-            auto endAngle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+           
 
            
             // Draw the arc with gradient
@@ -73,7 +72,7 @@ public:
 
             // Draw the pointer
             g.setColour(outline);
-            auto thumbWidth = lineW * 0.75f;
+           
 
                
     }
@@ -203,4 +202,4 @@ private:
 
 };
 
-#endif // !ZENLOOK_H
+#endif // ZENLOOK_H

@@ -7,25 +7,28 @@
 #include <JuceHeader.h>
 
 #include "GUIDefines.h"
-#include "../pluginparamers/PluginParameters.h"
+#include "../Parameters.h"
 #include "CSlider.h"
 #include "SizeMenu.h"
 class GUI : public juce::Component
 {
 public:
     
-    GUI(AudioPluginAudioProcessor& processor);
+    GUI(AudioPluginProcessor& processor);
     
     ~GUI() override ;
     
     void resized() override;
     void paint(juce::Graphics& g) override;
-    AudioPluginAudioProcessor& proc;
+    AudioPluginProcessor& proc;
 private:
     std::unique_ptr<ZenSlider> VolumeKnob;
     std::unique_ptr<SizeMenu> sizeMenu;
     juce::AudioProcessorValueTreeState::SliderAttachment  volumeAttach;
-     
+    juce::Label dbLabel;
+  
+    
+    void updateDbLabel();
   
 };
 

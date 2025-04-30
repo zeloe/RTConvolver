@@ -18,8 +18,9 @@ const int CONV_RES_SIZE_FLOAT = MAX_BUFFER_SIZE * 2 * sizeof(float);
 const int SHARED_ARRAY_SIZE = MAX_BUFFER_SIZE * 4;
 
 namespace GPUConv {
-	void initSizes();
 
+	void initSizes();
+	void changeSizes(int bs);
 
 	// Error checking helper function
 	cudaError_t checkCudaError(cudaError_t error);

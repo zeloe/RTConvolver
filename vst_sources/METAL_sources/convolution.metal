@@ -35,7 +35,7 @@ kernel void shared_partitioned_convolution(
       
     for (uint j = 0; j < block_size; j++) {
         uint inv = (tid - j) % block_size;
-        tempResult[j + inv] += (shared_arr1[j] * shared_arr2[inv]) * 0.015f;
+        tempResult[j + inv] += (shared_arr1[j] * shared_arr2[inv]) * 0.05f;
     }
         
     threadgroup_barrier(mem_flags::mem_threadgroup);

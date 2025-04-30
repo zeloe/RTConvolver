@@ -2,126 +2,129 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-AudioPluginAudioProcessor::AudioPluginAudioProcessor()
+AudioPluginProcessor::AudioPluginProcessor()
+#ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
                      .withInput("Main Input", juce::AudioChannelSet::stereo(), true)
                      .withInput("Sidechain Input", juce::AudioChannelSet::stereo(), true) // Sidechain bus
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     
-                     #endif
-                       ),
+                     .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
 juce::Thread("GPUThread"),
-treeState (*this, nullptr, juce::Identifier ("Parameters"), PluginParameter::createParameterLayout())
+params(treeState)
+#endif
 {
-    
     gpu_convolution = std::make_unique<GPU_ConvolutionEngine>();
-    gain = std::make_unique<Gain>(treeState);
-   
-    auto sizeParamValue = treeState.state.getProperty(sizeParamID);
-    if(sizeParamValue) {
-        // Load the value and cast it to a float
-        float Size = static_cast<float>(sizeParamValue);
-        gpu_convolution->setSize(Size * float(getSampleRate()));
-    }
     startThread(Priority::highest);
 }
 
-AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
+AudioPluginProcessor::~AudioPluginProcessor()
 {
     stopThread(2000);
 }
 
 //==============================================================================
-const juce::String AudioPluginAudioProcessor::getName() const
+const juce::String AudioPluginProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool AudioPluginAudioProcessor::acceptsMidi() const
+bool AudioPluginProcessor::acceptsMidi() const
 {
-   #if JucePlugin_WantsMidiInput
-    return true;
-   #else
     return false;
-   #endif
 }
 
-bool AudioPluginAudioProcessor::producesMidi() const
+bool AudioPluginProcessor::producesMidi() const
 {
-   #if JucePlugin_ProducesMidiOutput
-    return true;
-   #else
     return false;
-   #endif
 }
 
-bool AudioPluginAudioProcessor::isMidiEffect() const
+bool AudioPluginProcessor::isMidiEffect() const
 {
-   #if JucePlugin_IsMidiEffect
-    return true;
-   #else
     return false;
-   #endif
 }
 
-double AudioPluginAudioProcessor::getTailLengthSeconds() const
+double AudioPluginProcessor::getTailLengthSeconds() const
 {
     return 0.f;
 }
 
-int AudioPluginAudioProcessor::getNumPrograms()
+int AudioPluginProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int AudioPluginAudioProcessor::getCurrentProgram()
+int AudioPluginProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void AudioPluginAudioProcessor::setCurrentProgram (int index)
+void AudioPluginProcessor::setCurrentProgram (int index)
 {
     juce::ignoreUnused (index);
 }
 
-const juce::String AudioPluginAudioProcessor::getProgramName (int index)
+const juce::String AudioPluginProcessor::getProgramName (int index)
 {
     juce::ignoreUnused (index);
     return {};
 }
 
-void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void AudioPluginProcessor::changeProgramName (int index, const juce::String& newName)
 {
     juce::ignoreUnused (index, newName);
 }
 
 //==============================================================================
-void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void AudioPluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    gpu_convolution->setSize(float(sampleRate));
+
+  
+
     
-    gain->prepare();
+    
+    float sr = float(sampleRate);
+    if(sr > 48000) {
+        sr  = 48000;
+    }
+    auto sizeIndexValue = treeState.state.getProperty(sizeParamID);
+    
+    float Size = 0.5f * sr;
+    if(sizeIndexValue) {
+        int index = static_cast<int>(sizeIndexValue);
+    // Load the value and cast it to a float
+        Size = sizes[index];
+        Size *= sr;
+    }
+    params.prepareToPlay(sampleRate);
     
     
-   
+    bs_process = samplesPerBlock;
+    if (bs_process < 256) {
+        
+        bs_process = 256;
+        
+    }
+
+    if (bs_process > 1024) {
+        bs_process = 1024;
+    }
+    
+    gpu_convolution->prepare(bs_process,Size);
    
     sliceBuf.clear();
    
 
     maxBs = samplesPerBlock;
-    isProcessing.store(false);
+    lastNormA = 0.5f;
+    lastNormB = 0.5f;
 }
 
-void AudioPluginAudioProcessor::releaseResources()
+void AudioPluginProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
-bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool AudioPluginProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     const int numInputMain = layouts.getNumChannels(true, 0);
     const int numInputSide = layouts.getNumChannels(true, 1);
@@ -137,96 +140,120 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout
 }
  
 
-void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void AudioPluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,[[maybe_unused]] juce::MidiBuffer& midiMessages)
 {
-        const int bs = buffer.getNumSamples();  // Block size
-        juce::ignoreUnused(midiMessages);
-        juce::ScopedNoDenormals noDenormals;
+   
+    juce::ScopedNoDenormals noDenormals;
 
-        auto inputBus = getBus(true, 0);
-        auto inputBuffer = inputBus->getBusBuffer(buffer);
-        auto sideChainBus = getBus(true, 1);
-        auto sideChainBuffer = sideChainBus->getBusBuffer(buffer);
-        auto outBus = getBus(false, 0);
-        auto outBuffer = outBus->getBusBuffer(buffer);
+    const int bs = buffer.getNumSamples();  // Block size
+    auto inputBus = getBus(true, 0);
+    auto inputBuffer = inputBus->getBusBuffer(buffer);
+    auto sideChainBus = getBus(true, 1);
+    auto sideChainBuffer = sideChainBus->getBusBuffer(buffer);
+    auto outBus = getBus(false, 0);
+    auto outBuffer = outBus->getBusBuffer(buffer);
 
-        // Attempt to push data into FIFO
-        int start1, size1, start2, size2;
-        audioFifo_to_GPU.prepareToWrite(bs, start1, size1, start2, size2);
-
-        // Writing the data to the FIFO buffers
-        if (size1 > 0)
-        {
-            fifoInputBuffer.copyFrom(0, start1, inputBuffer, 0, 0, size1);
-            fifoInputBuffer.copyFrom(1, start1, inputBuffer, 1, 0, size1);
-            fifoInputBuffer.copyFrom(2, start1, sideChainBuffer, 0, 0, size1);
-            fifoInputBuffer.copyFrom(3, start1, sideChainBuffer, 1, 0, size1);
-        }
-        if (size2 > 0)
-        {
-            fifoInputBuffer.copyFrom(0, start2, inputBuffer, 0, 0, size2);
-            fifoInputBuffer.copyFrom(1, start2, inputBuffer, 1, 0, size2);
-            fifoInputBuffer.copyFrom(2, start2, sideChainBuffer, 0, 0, size2);
-            fifoInputBuffer.copyFrom(3, start2, sideChainBuffer, 1, 0, size2);
-        }
-
-        // Finish writing the data into FIFO
-        audioFifo_to_GPU.finishedWrite(size1 + size2);
-
-        outBuffer.clear();
-
-        // Now check if we have enough samples in the FIFO for output
-        int availableOutSamples = audioFifo_from_GPU.getNumReady();
-        if (availableOutSamples >= bs)
-        {
-            int start3, size3, start4, size4;
-            audioFifo_from_GPU.prepareToRead(bs, start3, size3, start4, size4);
-
-            if (size3 > 0)
-            {
-                outBuffer.copyFrom(0, 0, fifoOutputBuffer, 0, start3, size3);
-                outBuffer.copyFrom(1, 0, fifoOutputBuffer, 1, start3, size3);
-            }
-
-            if (size4 > 0)
-            {
-                outBuffer.addFrom(0, size3, fifoOutputBuffer, 0, start4, size4);
-                outBuffer.addFrom(1, size3, fifoOutputBuffer, 1, start4, size4);
-            }
-
-            audioFifo_from_GPU.finishedRead(size3 + size4);
-        }
-
-        gain->process(outBuffer);
-        outBuffer.applyGain(0.025f);
+    // Attempt to push data into FIFO
+    int start1, size1, start2, size2;
+    audioFifo_to_GPU.prepareToWrite(bs, start1, size1, start2, size2);
+        
+    params.update();
+    
+    // Writing the data to the FIFO buffers
+    if (size1 > 0)
+    {
+        fifoInputBuffer.copyFrom(0, start1, inputBuffer, 0, 0, size1);
+        fifoInputBuffer.copyFrom(1, start1, inputBuffer, 1, 0, size1);
+        fifoInputBuffer.copyFrom(2, start1, sideChainBuffer, 0, 0, size1);
+        fifoInputBuffer.copyFrom(3, start1, sideChainBuffer, 1, 0, size1);
     }
+    if (size2 > 0)
+    {
+        fifoInputBuffer.copyFrom(0, start2, inputBuffer, 0, 0, size2);
+        fifoInputBuffer.copyFrom(1, start2, inputBuffer, 1, 0, size2);
+        fifoInputBuffer.copyFrom(2, start2, sideChainBuffer, 0, 0, size2);
+        fifoInputBuffer.copyFrom(3, start2, sideChainBuffer, 1, 0, size2);
+    }
+
+    // Finish writing the data into FIFO
+    audioFifo_to_GPU.finishedWrite(size1 + size2);
+
+    outBuffer.clear();
+
+    // Now check if we have enough samples in the FIFO for output
+    int availableOutSamples = audioFifo_from_GPU.getNumReady();
+    if (availableOutSamples >= bs)
+    {
+        int start3, size3, start4, size4;
+        audioFifo_from_GPU.prepareToRead(bs, start3, size3, start4, size4);
+
+        if (size3 > 0)
+        {
+            outBuffer.copyFrom(0, 0, fifoOutputBuffer, 0, start3, size3);
+            outBuffer.copyFrom(1, 0, fifoOutputBuffer, 1, start3, size3);
+        }
+
+        if (size4 > 0)
+        {
+            outBuffer.addFrom(0, size3, fifoOutputBuffer, 0, start4, size4);
+            outBuffer.addFrom(1, size3, fifoOutputBuffer, 1, start4, size4);
+        }
+
+        audioFifo_from_GPU.finishedRead(size3 + size4);
+    }
+    
+    //Normalisation of output
+    const float outRMSA  = outBuffer.getRMSLevel(0, 0, bs);
+    const float outRMSB  = outBuffer.getRMSLevel(1, 0, bs);
+    
+    float normA = 0.5f;
+    if (fabs(outRMSA) > epsilon) {
+        normA = sqrt(rms / outRMSA);
+    }
+    float normB = 0.5f;
+    if (fabs(outRMSB) > epsilon) {
+        normB = sqrt(rms / outRMSB);
+    }
+    
+    
+    outBuffer.applyGainRamp(0, 0, bs, lastNormA,normA);
+    outBuffer.applyGainRamp(1, 0, bs, lastNormB,normB);
+        
+    lastNormA = normA;
+    lastNormB = normB;
+    for(int ch = 0; ch < 2; ch++) {
+        float* write = outBuffer.getWritePointer(ch);
+        for(int sample = 0;  sample < outBuffer.getNumSamples(); sample++) {
+            params.smoothen();
+            write[sample] *= params.gain;
+        }
+    }
+}
 
     
 
 //==============================================================================
-bool AudioPluginAudioProcessor::hasEditor() const
+bool AudioPluginProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* AudioPluginAudioProcessor::createEditor()
+juce::AudioProcessorEditor* AudioPluginProcessor::createEditor()
 {
-    return new AudioPluginAudioProcessorEditor (*this); //juce::GenericAudioProcessorEditor(*this);//
+    return new AudioPluginEditor (*this); //juce::GenericAudioProcessorEditor(*this);//
 }
 
 //==============================================================================
-void AudioPluginAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void AudioPluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    juce::MemoryOutputStream mos(destData, true);
-        treeState.state.writeToStream(mos);
+    copyXmlToBinary(*treeState.copyState().createXml(), destData);
 }
 
-void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void AudioPluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-        if (tree.isValid())
-        {
-            treeState.replaceState(tree);
+    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data,sizeInBytes));
+        if(xml.get() != nullptr && xml->hasTagName(treeState.state.getType())) {
+            treeState.replaceState(juce::ValueTree::fromXml(*xml));
         }
 }
 
@@ -234,27 +261,32 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new AudioPluginAudioProcessor();
+    return new AudioPluginProcessor();
 }
 
-void AudioPluginAudioProcessor::getSize(float Size) {
+void AudioPluginProcessor::getSize(float Size) {
 
+    float sr = float(getSampleRate());
+    if(sr > 48000) {
+        sr  = 48000;
+    }
+    
     if(std::abs(Size - lastSize) > epsilon) {
-        gpu_convolution->setSize(Size * float(getSampleRate()));
+        gpu_convolution->setSize(Size * sr);
         lastSize = Size;
     }
 }
 
-void AudioPluginAudioProcessor::run()
+void AudioPluginProcessor::run()
 {
     while (!threadShouldExit())
     {
         int availableSamples = audioFifo_to_GPU.getNumReady();
-        if (availableSamples >= 1024 * 2)
+        if (availableSamples >= bs_process * 2)
         {
             int start1, size1, start2, size2;
             
-            audioFifo_to_GPU.prepareToRead(1024, start1, size1, start2, size2);
+            audioFifo_to_GPU.prepareToRead(bs_process, start1, size1, start2, size2);
             
           
             if (size1 > 0)
@@ -269,10 +301,10 @@ void AudioPluginAudioProcessor::run()
             // Handle wraparound
             if (size2 > 0)
             {
-                sliceBuf.addFrom(0, size1, fifoInputBuffer, 0, start2, size2);
-                sliceBuf.addFrom(1, size1, fifoInputBuffer, 1, start2, size2);
-                sliceBuf.addFrom(2, size1, fifoInputBuffer, 2, start2, size2);
-                sliceBuf.addFrom(3, size1, fifoInputBuffer, 3, start2, size2);
+                sliceBuf.copyFrom(0, size1, fifoInputBuffer, 0, start2, size2);
+                sliceBuf.copyFrom(1, size1, fifoInputBuffer, 1, start2, size2);
+                sliceBuf.copyFrom(2, size1, fifoInputBuffer, 2, start2, size2);
+                sliceBuf.copyFrom(3, size1, fifoInputBuffer, 3, start2, size2);
             }
             audioFifo_to_GPU.finishedRead(size1 + size2);
            

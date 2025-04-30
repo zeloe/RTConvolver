@@ -2,7 +2,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
+AudioPluginEditor::AudioPluginEditor (AudioPluginProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p)
 {
     gui = std::make_unique<GUI>(processorRef);
@@ -14,18 +14,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     setSize (guiwidth,guiwidth);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
+AudioPluginEditor::~AudioPluginEditor()
 {
    
 }
 
 //==============================================================================
-void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
+void AudioPluginEditor::paint (juce::Graphics& g)
 {
-   
+    juce::ignoreUnused(g);
 }
 
-void AudioPluginAudioProcessorEditor::resized()
+void AudioPluginEditor::resized()
 {
     
      

@@ -2,13 +2,13 @@
 
 #include "PluginProcessor.h"
 #include "GUI/GUI.h"
-#include "pluginparamers/PluginParameters.h"
+#include "Parameters.h"
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
+class AudioPluginEditor final : public juce::AudioProcessorEditor
 {
 public:
-    explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
-    ~AudioPluginAudioProcessorEditor() override;
+    explicit AudioPluginEditor (AudioPluginProcessor&);
+    ~AudioPluginEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -19,9 +19,9 @@ private:
    
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    AudioPluginAudioProcessor& processorRef;
+    AudioPluginProcessor& processorRef;
     std::unique_ptr<GUI> gui;
 
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginEditor)
 };
