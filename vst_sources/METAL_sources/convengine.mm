@@ -286,7 +286,7 @@ void GPU_ConvolutionEngine::sendComputeCommandCommand() {
 
 void GPU_ConvolutionEngine::setSize(float size) {
     size_param = size;
-    partitions = (size_param / float(bs)) + 1;
+    partitions = (size_param / float(bs)) + 1.f;
     paddedSize = partitions * bs;
     gridSize = MTL::Size::Make(paddedSize,1,1);
     clear();
